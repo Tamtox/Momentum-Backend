@@ -28,6 +28,7 @@ interface HabitsListItem {
     habitWeekdays:{0:boolean,1:boolean,2:boolean,3:boolean,4:boolean,5:boolean,6:boolean},
     goalId:string | null,
     goalTargetDate:string | null,
+    isArchived:boolean
 }
 const habitsListItemSchema = new mongoose.Schema<HabitsListItem>({
     habitTitle:{type:String,required:true},
@@ -36,19 +37,20 @@ const habitsListItemSchema = new mongoose.Schema<HabitsListItem>({
     habitWeekdays:{0:{type:Boolean,required:true},1:{type:Boolean,required:true},2:{type:Boolean,required:true},3:{type:Boolean,required:true},4:{type:Boolean,required:true},5:{type:Boolean,required:true},6:{type:Boolean,required:true}},
     goalId:{type:String,default:null},
     goalTargetDate:{type:String,default:null},
+    isArchived:{type:Boolean,required:true,default:false}
 })
 
 interface Habit{
     _id:string, 
     user:string,
     habitEntries:HabitEntry[],
-    habitList:HabitsListItem[]
+    habitList:HabitsListItem[],
 }
 const habitSchema = new mongoose.Schema<Habit>({
     _id:{type:String,required:true},
     user:{type:String,required:true},
     habitEntries:[habitEntrySchema],
-    habitList:[habitsListItemSchema]
+    habitList:[habitsListItemSchema],
 })
 
 const Habit = mongoose.model<Habit>('Habit',habitSchema);

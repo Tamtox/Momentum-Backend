@@ -1,12 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const { Goal, GoalItem } = require('../models/goal');
-const { Habit, HabitEntry, HabitsListItem } = require('../models/habit');
 const getGoals = async (req, res, next) => {
     const userId = req.params.userId;
     let goalCluster;
     try {
-        goalCluster = await Goal.findOne({ "_id": userId });
+        goalCluster = await Goal.findOne({ "_id": userId }, { goalList: { $filter: { input: "$goalList", as: "item", cond: { $eq: ["$$item.isArchived", false] } } } });
+    }
+    catch (error) {
+        return res.status(500).send('Failed to retrieve goal data.');
+    }
+    // Returns an array of objects
+    res.status(200).send(goalCluster.goalList);
+};
+const getArchivedGoals = async (req, res, next) => {
+    const userId = req.params.userId;
+    let goalCluster;
+    try {
+        goalCluster = await Goal.findOne({ "_id": userId }, { goalList: { $filter: { input: "$goalList", as: "item", cond: { $eq: ["$$item.isArchived", true] } } } });
     }
     catch (error) {
         return res.status(500).send('Failed to retrieve goal data.');
@@ -29,13 +40,14 @@ const addNewGoal = async (req, res, next) => {
 };
 const updateGoal = async (req, res, next) => {
     const userId = req.params.userId;
-    const { goalTitle, goalTargetDate, goalStatus, habitId, _id } = req.body;
+    const { goalTitle, goalTargetDate, goalStatus, habitId, _id, isArchived } = req.body;
     try {
         await Goal.findOneAndUpdate({ _id: userId, "goalList._id": _id }, { $set: {
                 "goalList.$.goalTitle": goalTitle,
                 "goalList.$.goalTargetDate": goalTargetDate,
                 "goalList.$.goalStatus": goalStatus,
                 "goalList.$.habitId": habitId,
+                "goalList.$.isArchived": isArchived,
             } });
     }
     catch (error) {
@@ -55,6 +67,7 @@ const deleteGoal = async (req, res, next) => {
     res.status(200).send("Successfully deleted goal");
 };
 exports.getGoals = getGoals;
+exports.getArchivedGoals = getArchivedGoals;
 exports.addNewGoal = addNewGoal;
 exports.updateGoal = updateGoal;
 exports.deleteGoal = deleteGoal;

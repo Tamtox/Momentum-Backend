@@ -5,7 +5,19 @@ const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     let todoCluster
     try {
-        todoCluster = await Todo.findOne({"_id":userId});
+        todoCluster = await Todo.findOne({"_id":userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",false]}}}});
+    } catch (error) {
+        return res.status(500).send('Failed to retrieve todo data.')
+    }
+    // Returns an array of objects
+    res.status(200).json(todoCluster.todoList)
+}
+
+const getArchivedTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
+    const userId = req.params.userId
+    let todoCluster
+    try {
+        todoCluster = await Todo.findOne({"_id":userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",true]}}}});
     } catch (error) {
         return res.status(500).send('Failed to retrieve todo data.')
     }
@@ -27,7 +39,7 @@ const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {todoTitle,todoDescription,todoTargetDate,todoStatus,_id} = req.body as {todoTitle:string,todoDescription:string,todoTargetDate:string,todoStatus:string,_id:string}
+    const {todoTitle,todoDescription,todoTargetDate,todoStatus,_id,isArchived} = req.body as {todoTitle:string,todoDescription:string,todoTargetDate:string,todoStatus:string,_id:string,isArchived:boolean}
     try {
         await Todo.findOneAndUpdate(
             {_id:userId,"todoList._id":_id},
@@ -35,7 +47,8 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "todoList.$.todoTitle":todoTitle,
                 "todoList.$.todoDescription":todoDescription,
                 "todoList.$.todoTargetDate":todoTargetDate,
-                "todoList.$.todoStatus":todoStatus
+                "todoList.$.todoStatus":todoStatus,
+                "todoList.$.isArchived":isArchived,
             }}
         )
     } catch (error) {
@@ -56,6 +69,7 @@ const deleteTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
 }
 
 exports.getTodos = getTodos
+exports.getArchivedTodos = getArchivedTodos
 exports.addNewTodo = addNewTodo
 exports.updateTodo = updateTodo
 exports.deleteTodo = deleteTodo

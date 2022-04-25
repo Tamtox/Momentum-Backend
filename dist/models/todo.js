@@ -10,6 +10,7 @@ const todoItemSchema = new mongoose_1.default.Schema({
     todoStatus: { type: String, enum: ['Pending', 'Complete'], required: true, default: "Pending" },
     todoCreationDate: { type: String, required: true },
     todoTargetDate: { type: String, default: null },
+    isArchived: { type: Boolean, required: true, default: false }
 });
 const todoSchema = new mongoose_1.default.Schema({
     _id: { type: String, required: true },

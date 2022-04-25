@@ -21,12 +21,13 @@ const habitsListItemSchema = new mongoose_1.default.Schema({
     habitWeekdays: { 0: { type: Boolean, required: true }, 1: { type: Boolean, required: true }, 2: { type: Boolean, required: true }, 3: { type: Boolean, required: true }, 4: { type: Boolean, required: true }, 5: { type: Boolean, required: true }, 6: { type: Boolean, required: true } },
     goalId: { type: String, default: null },
     goalTargetDate: { type: String, default: null },
+    isArchived: { type: Boolean, required: true, default: false }
 });
 const habitSchema = new mongoose_1.default.Schema({
     _id: { type: String, required: true },
     user: { type: String, required: true },
     habitEntries: [habitEntrySchema],
-    habitList: [habitsListItemSchema]
+    habitList: [habitsListItemSchema],
 });
 const Habit = mongoose_1.default.model('Habit', habitSchema);
 const HabitEntry = mongoose_1.default.model('Habit Entry', habitEntrySchema);

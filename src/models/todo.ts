@@ -6,6 +6,7 @@ interface TodoItem {
     todoStatus:string,
     todoCreationDate:string, /* Date format : Date.toString() */
     todoTargetDate:string | null /* Date format : Date.toString() */
+    isArchived:boolean
 }
 const todoItemSchema = new mongoose.Schema<TodoItem>({
     todoTitle:{type:String,required:true},
@@ -13,12 +14,13 @@ const todoItemSchema = new mongoose.Schema<TodoItem>({
     todoStatus:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
     todoCreationDate:{type:String,required:true},
     todoTargetDate:{type:String,default:null},
+    isArchived:{type:Boolean,required:true,default:false}
 })
 
 interface Todo {
     _id:string
     user:string,
-    todoList:TodoItem[]
+    todoList:TodoItem[],
 }
 const todoSchema = new mongoose.Schema<Todo>({
     _id:{type:String,required:true},

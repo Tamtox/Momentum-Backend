@@ -6,13 +6,15 @@ interface GoalItem {
     goalTargetDate:string | null, /* Date format : Date.toString() */
     goalStatus:string,
     habitId:string | null,
+    isArchived:boolean
 }
 const goalItemSchema = new mongoose.Schema<GoalItem>({
     goalTitle:{type:String,required:true},
     goalCreationDate:{type:String,required:true}, /* Date format : Date.toString() */
     goalTargetDate:{type:String,default:null}, /* Date format : Date.toString() */
     goalStatus:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
-    habitId:{type:String,default:null}
+    habitId:{type:String,default:null},
+    isArchived:{type:Boolean,required:true,default:false}
 })
 
 interface Goal{

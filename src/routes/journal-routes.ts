@@ -1,11 +1,9 @@
 import express from "express";
 const router = express.Router();
-const {getJournal,updateJournalEntry,createJournalEntry} = require('../controllers/journal-controllers');
+const {getJournalEntry,updateJournalEntry} = require('../controllers/journal-controllers');
 const {authCheck} = require('../middleware/auth-check');
 
-router.post('/getJournal',authCheck,getJournal)
-
-router.post('/createJournalEntry',authCheck,createJournalEntry)
+router.post('/getJournalEntry',authCheck,getJournalEntry)
 
 router.patch('/updateJournalEntry',authCheck,updateJournalEntry)
 

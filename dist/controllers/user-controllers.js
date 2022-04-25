@@ -9,34 +9,15 @@ const { Goal } = require('../models/goal');
 //Dependencies
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { SECRET_STRING, EMAIL, REFRESH_TOKEN, CLIENT_ID, CLIENT_SECRET } = process.env;
+const { SECRET_STRING, EMAIL, GMAIL_PASS } = process.env;
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 const sendVerificationMail = async (email, verificationCode, verificationMode) => {
-    const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, "https://developers.google.com/oauthplayground");
-    oauth2Client.setCredentials({
-        refresh_token: REFRESH_TOKEN
-    });
-    // getAccessToken requires a callback and does not support using async await
-    const accessToken = await new Promise((resolve, reject) => {
-        oauth2Client.getAccessToken((err, token) => {
-            if (err) {
-                reject("Failed to create access token");
-            }
-            resolve(token);
-        });
-    });
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        service: 'gmail',
         auth: {
-            type: "OAuth2",
             user: EMAIL,
-            accessToken,
-            clientId: CLIENT_ID,
-            clientSecret: CLIENT_SECRET,
-            refreshToken: REFRESH_TOKEN
+            pass: GMAIL_PASS
         }
     });
     const mailOptions = {
@@ -90,7 +71,7 @@ const signup = async (req, res, next) => {
     const newUserTodo = new Todo({
         _id: newUser.id,
         user: email,
-        todoList: []
+        todoList: [],
     });
     const newUserHabit = new Habit({
         _id: newUser.id,
@@ -186,10 +167,10 @@ const verifyUser = async (req, res, next) => {
         catch (error) {
             return res.status(500).send('Verification failed!');
         }
-        res.status(200).send('Verification successfull!');
+        res.status(200).json({ message: 'Verification successfull.' });
     }
     else {
-        return res.status(403).send('Verification code is incorrect!');
+        return res.status(403).send('Verification code is incorrect.');
     }
 };
 const getUserData = async (req, res, next) => {
@@ -224,9 +205,9 @@ const sendVerificationLetter = async (req, res, next) => {
         await sendVerificationMail(email, verificationCode, true);
     }
     catch (error) {
-        console.log(error);
+        return res.status(500).send('Failed to send verification letter. Please try again later.');
     }
-    res.status(200).send("Verification code was sent to provided email");
+    res.status(200).json({ message: "Verification code was sent to provided email" });
 };
 const changePassword = async (req, res, next) => {
     const { currentPass, newPass } = req.body;
@@ -276,7 +257,8 @@ const changePassword = async (req, res, next) => {
     catch (error) {
         return res.status(500).send('Failed to login. Please try again later.');
     }
-    res.status(200).json({ token, emailConfirmationStatus: existingUser.emailConfirmationStatus, email: existingUser.email, name: existingUser.name });
+    const message = 'Password changed successfully';
+    res.status(200).json({ message, token, emailConfirmationStatus: existingUser.emailConfirmationStatus, email: existingUser.email, name: existingUser.name });
 };
 const resetPassword = async (req, res, next) => {
     const { email } = req.body;
@@ -289,7 +271,7 @@ const resetPassword = async (req, res, next) => {
         return res.status(500).send('Failed to reset password. Please try again later.');
     }
     if (!existingUser) {
-        return res.status(404).send('User does not exist!');
+        return res.status(404).send('User with provided email does not exist!');
     }
     // Generate and hash temporary password
     let tempPassword = '';
@@ -316,9 +298,9 @@ const resetPassword = async (req, res, next) => {
         await sendVerificationMail(email, tempPassword, false);
     }
     catch (error) {
-        console.log(error);
+        return res.status(500).send('Failed to send verification letter. Please try again later.');
     }
-    res.status(200).send("Temporary password was sent to provided email");
+    res.status(200).json({ message: `Temporary password was sent to ${email}` });
 };
 const deleteUser = async (req, res, next) => {
     const userId = req.params.userId;

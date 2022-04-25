@@ -5,7 +5,19 @@ const getTodos = async (req, res, next) => {
     const userId = req.params.userId;
     let todoCluster;
     try {
-        todoCluster = await Todo.findOne({ "_id": userId });
+        todoCluster = await Todo.findOne({ "_id": userId }, { todoList: { $filter: { input: "$todoList", as: "item", cond: { $eq: ["$$item.isArchived", false] } } } });
+    }
+    catch (error) {
+        return res.status(500).send('Failed to retrieve todo data.');
+    }
+    // Returns an array of objects
+    res.status(200).json(todoCluster.todoList);
+};
+const getArchivedTodos = async (req, res, next) => {
+    const userId = req.params.userId;
+    let todoCluster;
+    try {
+        todoCluster = await Todo.findOne({ "_id": userId }, { todoList: { $filter: { input: "$todoList", as: "item", cond: { $eq: ["$$item.isArchived", true] } } } });
     }
     catch (error) {
         return res.status(500).send('Failed to retrieve todo data.');
@@ -27,13 +39,14 @@ const addNewTodo = async (req, res, next) => {
 };
 const updateTodo = async (req, res, next) => {
     const userId = req.params.userId;
-    const { todoTitle, todoDescription, todoTargetDate, todoStatus, _id } = req.body;
+    const { todoTitle, todoDescription, todoTargetDate, todoStatus, _id, isArchived } = req.body;
     try {
         await Todo.findOneAndUpdate({ _id: userId, "todoList._id": _id }, { $set: {
                 "todoList.$.todoTitle": todoTitle,
                 "todoList.$.todoDescription": todoDescription,
                 "todoList.$.todoTargetDate": todoTargetDate,
-                "todoList.$.todoStatus": todoStatus
+                "todoList.$.todoStatus": todoStatus,
+                "todoList.$.isArchived": isArchived,
             } });
     }
     catch (error) {
@@ -53,6 +66,7 @@ const deleteTodo = async (req, res, next) => {
     res.status(200).send("Successfully deleted todo");
 };
 exports.getTodos = getTodos;
+exports.getArchivedTodos = getArchivedTodos;
 exports.addNewTodo = addNewTodo;
 exports.updateTodo = updateTodo;
 exports.deleteTodo = deleteTodo;

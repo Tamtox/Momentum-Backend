@@ -1,9 +1,11 @@
 import express from "express";
 const router = express.Router();
-const {getTodos,addNewTodo,updateTodo,deleteTodo} = require('../controllers/todo-controllers');
+const {getTodos,getArchivedTodos,addNewTodo,updateTodo,deleteTodo} = require('../controllers/todo-controllers');
 const {authCheck} = require('../middleware/auth-check');
 
 router.get('/getTodos',authCheck,getTodos)
+
+router.get('/getArchivedTodos',authCheck,getArchivedTodos)
 
 router.post('/addNewTodo',authCheck,addNewTodo)
 
