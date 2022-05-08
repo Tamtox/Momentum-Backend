@@ -8,7 +8,8 @@ interface HabitEntry {
     month:string, /* Date format : .getMonth() + 1 */
     date:string, /* Date format : .getDate() */
     weekday:string,
-    habitEntryStatus:string
+    habitEntryStatus:string,
+    dateCompleted:string /* Date format : Date.toString() */
 }
 const habitEntrySchema = new mongoose.Schema<HabitEntry>({
     weekStart:{type:String,required:true},
@@ -19,6 +20,7 @@ const habitEntrySchema = new mongoose.Schema<HabitEntry>({
     date:{type:String,required:true},
     weekday:{type:String,required:true},
     habitEntryStatus:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
+    dateCompleted:{type:String,default:""},
 })
 
 interface HabitsListItem {

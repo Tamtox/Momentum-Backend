@@ -13,6 +13,7 @@ const habitEntrySchema = new mongoose_1.default.Schema({
     date: { type: String, required: true },
     weekday: { type: String, required: true },
     habitEntryStatus: { type: String, enum: ['Pending', 'Complete'], required: true, default: "Pending" },
+    dateCompleted: { type: String, default: "" },
 });
 const habitsListItemSchema = new mongoose_1.default.Schema({
     habitTitle: { type: String, required: true },

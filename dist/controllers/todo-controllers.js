@@ -39,13 +39,14 @@ const addNewTodo = async (req, res, next) => {
 };
 const updateTodo = async (req, res, next) => {
     const userId = req.params.userId;
-    const { todoTitle, todoDescription, todoTargetDate, todoStatus, _id, isArchived } = req.body;
+    const { todoTitle, todoDescription, todoTargetDate, todoStatus, dateCompleted, _id, isArchived } = req.body;
     try {
         await Todo.findOneAndUpdate({ _id: userId, "todoList._id": _id }, { $set: {
                 "todoList.$.todoTitle": todoTitle,
                 "todoList.$.todoDescription": todoDescription,
                 "todoList.$.todoTargetDate": todoTargetDate,
                 "todoList.$.todoStatus": todoStatus,
+                "todoList.$.dateCompleted": dateCompleted,
                 "todoList.$.isArchived": isArchived,
             } });
     }

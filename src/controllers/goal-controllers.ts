@@ -40,7 +40,7 @@ const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {goalTitle,goalTargetDate,goalStatus,habitId,_id,isArchived} = req.body;
+    const {goalTitle,goalTargetDate,goalStatus,dateCompleted,habitId,_id,isArchived} = req.body;
     try {
         await Goal.findOneAndUpdate(
             {_id:userId,"goalList._id":_id},
@@ -48,6 +48,7 @@ const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "goalList.$.goalTitle":goalTitle,
                 "goalList.$.goalTargetDate":goalTargetDate,
                 "goalList.$.goalStatus":goalStatus,
+                "goalList.$.dateCompleted":dateCompleted,
                 "goalList.$.habitId":habitId,
                 "goalList.$.isArchived":isArchived,
             }}

@@ -9,6 +9,7 @@ const goalItemSchema = new mongoose_1.default.Schema({
     goalCreationDate: { type: String, required: true },
     goalTargetDate: { type: String, default: null },
     goalStatus: { type: String, enum: ['Pending', 'Complete'], required: true, default: "Pending" },
+    dateCompleted: { type: String, default: "" },
     habitId: { type: String, default: null },
     isArchived: { type: Boolean, required: true, default: false }
 });

@@ -39,7 +39,7 @@ const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {todoTitle,todoDescription,todoTargetDate,todoStatus,_id,isArchived} = req.body as {todoTitle:string,todoDescription:string,todoTargetDate:string,todoStatus:string,_id:string,isArchived:boolean}
+    const {todoTitle,todoDescription,todoTargetDate,todoStatus,dateCompleted,_id,isArchived} = req.body as {todoTitle:string,todoDescription:string,todoTargetDate:string,todoStatus:string,dateCompleted:string,_id:string,isArchived:boolean}
     try {
         await Todo.findOneAndUpdate(
             {_id:userId,"todoList._id":_id},
@@ -48,6 +48,7 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "todoList.$.todoDescription":todoDescription,
                 "todoList.$.todoTargetDate":todoTargetDate,
                 "todoList.$.todoStatus":todoStatus,
+                "todoList.$.dateCompleted":dateCompleted,
                 "todoList.$.isArchived":isArchived,
             }}
         )

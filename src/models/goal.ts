@@ -5,6 +5,7 @@ interface GoalItem {
     goalCreationDate:string, /* Date format : Date.toString() */
     goalTargetDate:string | null, /* Date format : Date.toString() */
     goalStatus:string,
+    dateCompleted:string, /* Date format : Date.toString() */
     habitId:string | null,
     isArchived:boolean
 }
@@ -13,6 +14,7 @@ const goalItemSchema = new mongoose.Schema<GoalItem>({
     goalCreationDate:{type:String,required:true}, /* Date format : Date.toString() */
     goalTargetDate:{type:String,default:null}, /* Date format : Date.toString() */
     goalStatus:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
+    dateCompleted:{type:String,default:""},
     habitId:{type:String,default:null},
     isArchived:{type:Boolean,required:true,default:false}
 })
