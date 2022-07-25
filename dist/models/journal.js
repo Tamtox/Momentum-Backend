@@ -6,10 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const journalEntrySchema = new mongoose_1.default.Schema({
     journalEntry: { type: String, required: true },
-    date: { type: String, required: true } /* Date format : "date/month/year" */
+    date: { type: Date, required: true },
 });
 const journalSchema = new mongoose_1.default.Schema({
-    _id: { type: String, required: true },
+    userId: { type: String, required: true },
     user: { type: String, required: true },
     journalEntries: [journalEntrySchema]
 });

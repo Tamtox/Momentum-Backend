@@ -1,11 +1,12 @@
 import { RequestHandler } from "express";
-const {Goal,GoalItem} = require('../models/goal');
+import { GoalItemInterface } from "../models/goal";
+const {Goal,GoalItem,GoalItemInterface} = require('../models/goal');
 
 const getGoals:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     let goalCluster
     try {
-        goalCluster = await Goal.findOne({"_id":userId},{goalList:{$filter:{input:"$goalList",as:"item",cond:{$eq:["$$item.isArchived",false]}}}});
+        goalCluster = await Goal.findOne({userId:userId},{goalList:{$filter:{input:"$goalList",as:"item",cond:{$eq:["$$item.isArchived",false]}}}});
     } catch (error) {
         return res.status(500).send('Failed to retrieve goal data.')
     }
@@ -17,7 +18,7 @@ const getArchivedGoals:RequestHandler<{userId:string}> = async (req,res,next) =>
     const userId = req.params.userId
     let goalCluster
     try {
-        goalCluster = await Goal.findOne({"_id":userId},{goalList:{$filter:{input:"$goalList",as:"item",cond:{$eq:["$$item.isArchived",true]}}}});
+        goalCluster = await Goal.findOne({userId:userId},{goalList:{$filter:{input:"$goalList",as:"item",cond:{$eq:["$$item.isArchived",true]}}}});
     } catch (error) {
         return res.status(500).send('Failed to retrieve goal data.')
     }
@@ -27,10 +28,10 @@ const getArchivedGoals:RequestHandler<{userId:string}> = async (req,res,next) =>
 
 const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {goalTitle,goalCreationDate,goalTargetDate,goalStatus} = req.body as {goalTitle:string,goalCreationDate:string,goalTargetDate:string,goalStatus:string};
-    const newGoalItem = new GoalItem({goalTitle,goalCreationDate,goalTargetDate,goalStatus});
+    const {title,creationDate,targetDate,status,creationUTCOffset,alarmUsed} = req.body as GoalItemInterface;
+    const newGoalItem = new GoalItem({title,creationDate,targetDate,status,creationUTCOffset,alarmUsed});
     try {
-        await Goal.findOneAndUpdate({_id:userId},{$push:{goalList:newGoalItem}})
+        await Goal.findOneAndUpdate({userId:userId},{$push:{goalList:newGoalItem}})
     } catch (error) {
         return res.status(500).send('Failed to add new goal.')
     }
@@ -40,17 +41,18 @@ const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {goalTitle,goalTargetDate,goalStatus,dateCompleted,habitId,_id,isArchived} = req.body;
+    const {title,targetDate,status,dateCompleted,habitId,_id,isArchived,alarmUsed} = req.body as GoalItemInterface;;
     try {
         await Goal.findOneAndUpdate(
-            {_id:userId,"goalList._id":_id},
+            {userId:userId,"goalList._id":_id},
             {$set:{
-                "goalList.$.goalTitle":goalTitle,
-                "goalList.$.goalTargetDate":goalTargetDate,
-                "goalList.$.goalStatus":goalStatus,
+                "goalList.$.title":title,
+                "goalList.$.targetDate":targetDate,
+                "goalList.$.status":status,
                 "goalList.$.dateCompleted":dateCompleted,
                 "goalList.$.habitId":habitId,
                 "goalList.$.isArchived":isArchived,
+                "goalList.$.alarmUsed":alarmUsed,
             }}
         )
     } catch (error) {
@@ -63,15 +65,11 @@ const deleteGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     const {_id} = req.body as {_id:string}
     try {
-        await Goal.findOneAndUpdate({_id:userId},{$pull:{goalList:{"_id":_id}}})
+        await Goal.findOneAndUpdate({userId:userId},{$pull:{goalList:{"_id":_id}}})
     } catch (error) {
         return res.status(500).send("Failed to delete goal.")
     }
     res.status(200).send("Successfully deleted goal")
 }
 
-exports.getGoals = getGoals
-exports.getArchivedGoals = getArchivedGoals
-exports.addNewGoal = addNewGoal
-exports.updateGoal = updateGoal
-exports.deleteGoal = deleteGoal
+export {getGoals,getArchivedGoals,addNewGoal,updateGoal,deleteGoal}

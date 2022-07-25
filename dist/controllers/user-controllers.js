@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.lastOnline = exports.deleteUser = exports.resetPassword = exports.changePassword = exports.sendVerificationLetter = exports.getUserData = exports.verifyUser = exports.login = exports.signup = void 0;
 //Models
 const User = require('../models/user');
 const { Todo } = require('../models/todo');
 const { Habit } = require('../models/habit');
 const { Journal } = require('../models/journal');
 const { Goal } = require('../models/goal');
+const { Notification } = require('../models/notification');
 //Dependencies
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -34,7 +36,7 @@ const sendVerificationMail = async (email, verificationCode, verificationMode) =
 };
 //Controllers
 const signup = async (req, res, next) => {
-    const { name, email, password, creationDate } = req.body;
+    const { name, email, password, creationDate, timezoneOffset } = req.body;
     // Check existing user
     let existingUser;
     try {
@@ -60,7 +62,7 @@ const signup = async (req, res, next) => {
         verificationCode += Math.floor(Math.random() * 10);
     }
     // Create new user in database
-    const newUser = new User({ name, email, password: hashedPassword, creationDate, emailConfirmationStatus: "Pending", verificationCode });
+    const newUser = new User({ name, email, password: hashedPassword, creationDate, lastLogin: new Date(), lastOnline: new Date(), utcOffset: timezoneOffset, emailConfirmationStatus: "Pending", verificationCode });
     try {
         await newUser.save();
     }
@@ -69,31 +71,37 @@ const signup = async (req, res, next) => {
     }
     // Create blank entries in database
     const newUserTodo = new Todo({
-        _id: newUser.id,
+        userId: newUser.id,
         user: email,
         todoList: [],
     });
     const newUserHabit = new Habit({
-        _id: newUser.id,
+        userId: newUser.id,
         user: email,
         habitEntries: [],
         habitList: []
     });
     const newUserGoal = new Goal({
-        _id: newUser.id,
+        userId: newUser.id,
         user: email,
         goalList: []
     });
     const newUserJournal = new Journal({
-        _id: newUser.id,
+        userId: newUser.id,
         user: email,
         journalEntries: []
+    });
+    const newUserNotification = new Notification({
+        userId: newUser.id,
+        user: email,
+        notificationList: []
     });
     try {
         await newUserTodo.save();
         await newUserHabit.save();
         await newUserGoal.save();
         await newUserJournal.save();
+        await newUserNotification.save();
     }
     catch (error) {
         return res.status(500).send('Failed to create new user. Please try again later.');
@@ -115,8 +123,9 @@ const signup = async (req, res, next) => {
     }
     res.status(201).json({ name, email, token, emailConfirmationStatus: "Pending" });
 };
+exports.signup = signup;
 const login = async (req, res, next) => {
-    const { email, password } = req.body;
+    const { email, password, timezoneOffset } = req.body;
     // Check existing user
     let existingUser;
     try {
@@ -138,7 +147,12 @@ const login = async (req, res, next) => {
     }
     if (!isValidPassword) {
         return res.status(401).send("Invalid Password!");
-        // return next(new HttpError('Incorrect password',401))
+    }
+    try {
+        await User.findOneAndUpdate({ email: email }, { $set: { lastLogin: new Date(), lastOnline: new Date(), utcOffset: timezoneOffset } });
+    }
+    catch (error) {
+        return res.status(500).send('Failed to login. Please try again later.');
     }
     // JWT
     let token;
@@ -150,19 +164,20 @@ const login = async (req, res, next) => {
     }
     res.status(200).json({ token, emailConfirmationStatus: existingUser.emailConfirmationStatus, email: existingUser.email, name: existingUser.name });
 };
+exports.login = login;
 const verifyUser = async (req, res, next) => {
     const userId = req.params.userId;
     const { verificationCode } = req.body;
     let existingUser;
     try {
-        existingUser = await User.findOne({ _id: userId });
+        existingUser = await User.findOne({ userId: userId });
     }
     catch (error) {
         return res.status(500).send('Verification failed. Please try again later.');
     }
     if (existingUser.verificationCode === verificationCode) {
         try {
-            await User.findOneAndUpdate({ _id: userId }, { $set: { emailConfirmationStatus: "Complete" } });
+            await User.findOneAndUpdate({ userId: userId }, { $set: { emailConfirmationStatus: "Complete" } });
         }
         catch (error) {
             return res.status(500).send('Verification failed!');
@@ -173,11 +188,12 @@ const verifyUser = async (req, res, next) => {
         return res.status(403).send('Verification code is incorrect.');
     }
 };
+exports.verifyUser = verifyUser;
 const getUserData = async (req, res, next) => {
     const userId = req.params.userId;
     let existingUser;
     try {
-        existingUser = await User.findOne({ _id: userId });
+        existingUser = await User.findOne({ userId: userId });
     }
     catch (error) {
         return res.status(500).send('Failed to retrieve data. Please try again later.');
@@ -189,12 +205,13 @@ const getUserData = async (req, res, next) => {
         return res.status(404).send('User does not exist!');
     }
 };
+exports.getUserData = getUserData;
 const sendVerificationLetter = async (req, res, next) => {
     const userId = req.params.userId;
     const { email } = req.body;
     let existingUser;
     try {
-        existingUser = await User.findOne({ _id: userId });
+        existingUser = await User.findOne({ userId: userId });
     }
     catch (error) {
         return res.status(500).send('Failed to retrieve data. Please try again later.');
@@ -209,13 +226,14 @@ const sendVerificationLetter = async (req, res, next) => {
     }
     res.status(200).json({ message: "Verification code was sent to provided email" });
 };
+exports.sendVerificationLetter = sendVerificationLetter;
 const changePassword = async (req, res, next) => {
     const { currentPass, newPass } = req.body;
     const userId = req.params.userId;
     // Check if user exists
     let existingUser;
     try {
-        existingUser = await User.findOne({ _id: userId });
+        existingUser = await User.findOne({ userId: userId });
     }
     catch (error) {
         return res.status(500).send('Failed to change password. Please try again later.');
@@ -244,7 +262,7 @@ const changePassword = async (req, res, next) => {
     }
     // Update password in database
     try {
-        await User.findOneAndUpdate({ _id: userId }, { $set: { password: hashedPassword } });
+        await User.findOneAndUpdate({ userId: userId }, { $set: { password: hashedPassword } });
     }
     catch (error) {
         return res.status(500).send('Failed to change password. Please try again later.');
@@ -260,6 +278,7 @@ const changePassword = async (req, res, next) => {
     const message = 'Password changed successfully';
     res.status(200).json({ message, token, emailConfirmationStatus: existingUser.emailConfirmationStatus, email: existingUser.email, name: existingUser.name });
 };
+exports.changePassword = changePassword;
 const resetPassword = async (req, res, next) => {
     const { email } = req.body;
     // Check existing user
@@ -288,7 +307,7 @@ const resetPassword = async (req, res, next) => {
     }
     // Update password in database
     try {
-        await User.findOneAndUpdate({ _id: existingUser._id }, { $set: { password: hashedPassword } });
+        await User.findOneAndUpdate({ userId: existingUser._id }, { $set: { password: hashedPassword } });
     }
     catch (error) {
         return res.status(500).send('Failed to reset password. Please try again later.');
@@ -302,22 +321,36 @@ const resetPassword = async (req, res, next) => {
     }
     res.status(200).json({ message: `Temporary password was sent to ${email}` });
 };
+exports.resetPassword = resetPassword;
 const deleteUser = async (req, res, next) => {
     const userId = req.params.userId;
+    const { password } = req.body;
     let existingUser;
     try {
-        existingUser = await User.findOne({ _id: userId });
+        existingUser = await User.findOne({ userId: userId });
     }
     catch (error) {
-        return res.status(500).send('Verification failed. Please try again later.');
+        return res.status(500).send('Account deletion failed. Please try again later.');
+    }
+    // Validate password
+    let isValidPassword;
+    try {
+        isValidPassword = await bcrypt.compare(password, existingUser.password);
+    }
+    catch (error) {
+        return res.status(500).send('Account deletion failed. Please try again later.');
+    }
+    if (!isValidPassword) {
+        return res.status(401).send("Invalid Current Password!");
     }
     if (existingUser) {
         try {
-            await User.findOneAndDelete({ "_id": userId });
-            await Todo.findOneAndDelete({ "_id": userId });
-            await Journal.findOneAndDelete({ "_id": userId });
-            await Habit.findOneAndDelete({ "_id": userId });
-            await Goal.findOneAndDelete({ "_id": userId });
+            await User.findOneAndDelete({ userId: userId });
+            await Todo.findOneAndDelete({ userId: userId });
+            await Journal.findOneAndDelete({ userId: userId });
+            await Habit.findOneAndDelete({ userId: userId });
+            await Goal.findOneAndDelete({ userId: userId });
+            await Notification.findOneAndDelete({ userId: userId });
         }
         catch (error) {
             return res.status(500).send('Failed to delete user. Please try again later.');
@@ -328,11 +361,15 @@ const deleteUser = async (req, res, next) => {
         return res.status(404).send('User not found');
     }
 };
-exports.signup = signup;
-exports.login = login;
-exports.verifyUser = verifyUser;
-exports.getUserData = getUserData;
-exports.sendVerificationLetter = sendVerificationLetter;
-exports.changePassword = changePassword;
-exports.resetPassword = resetPassword;
 exports.deleteUser = deleteUser;
+const lastOnline = async (req, res, next) => {
+    const userId = req.params.userId;
+    try {
+        await User.findOneAndUpdate({ userId: userId }, { $set: { lastOnline: new Date() } });
+    }
+    catch (error) {
+        return res.status(500).send('Failed to login. Please try again later.');
+    }
+    next();
+};
+exports.lastOnline = lastOnline;

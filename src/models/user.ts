@@ -4,7 +4,10 @@ interface User {
     name:string,
     email:string,
     password:string,
-    creationDate:string, /* Date format : Date.toString() */
+    creationDate:Date, /* Date format : new Date */
+    lastLogin:Date,
+    lastOnline:Date,
+    utcOffset:number,
     emailConfirmationStatus:string,
     verificationCode:string
 }   
@@ -13,7 +16,9 @@ const userSchema = new mongoose.Schema<User>({
     name:{type:String,required:true},
     email:{type:String,required:true},
     password:{type:String,require:true,minlength:6},
-    creationDate:{type:String,required:true},
+    creationDate:{type:Date,required:true},
+    lastLogin:{type:Date},
+    utcOffset:{type:Number},
     emailConfirmationStatus:{type:String,required:true,default:"Pending"},
     verificationCode:{type:String,required:true}
 })

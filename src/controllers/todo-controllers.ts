@@ -1,11 +1,14 @@
 import {RequestHandler} from "express";
+import { TodoItemInterface } from "../models/todo";
 const {Todo,TodoItem} = require('../models/todo');
+const {Notification,NotificationItem,NotificationItemInterface} = require('../models/notification');
+
 
 const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     let todoCluster
     try {
-        todoCluster = await Todo.findOne({"_id":userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",false]}}}});
+        todoCluster = await Todo.findOne({userId:userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",false]}}}});
     } catch (error) {
         return res.status(500).send('Failed to retrieve todo data.')
     }
@@ -17,7 +20,7 @@ const getArchivedTodos:RequestHandler<{userId:string}> = async (req,res,next) =>
     const userId = req.params.userId
     let todoCluster
     try {
-        todoCluster = await Todo.findOne({"_id":userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",true]}}}});
+        todoCluster = await Todo.findOne({userId:userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",true]}}}});
     } catch (error) {
         return res.status(500).send('Failed to retrieve todo data.')
     }
@@ -27,28 +30,29 @@ const getArchivedTodos:RequestHandler<{userId:string}> = async (req,res,next) =>
 
 const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {todoTitle,todoDescription,todoCreationDate,todoTargetDate,todoStatus} = req.body as {todoTitle:string,todoDescription:string,todoCreationDate:string,todoTargetDate:string,todoStatus:string};
-    const newTodoItem = new TodoItem({todoTitle,todoDescription,todoCreationDate,todoTargetDate,todoStatus});
+    const {title,description,creationDate,targetDate,status,creationUTCOffset,alarmUsed} = req.body as TodoItemInterface;
+    const newTodoItem = new TodoItem({title,description,creationDate,targetDate,status,creationUTCOffset});
     try {
-        await Todo.findOneAndUpdate({_id:userId},{$push:{todoList:newTodoItem}})
+        await Todo.findOneAndUpdate({userId:userId},{$push:{todoList:newTodoItem}})
     } catch (error) {
         return res.status(500).send('Failed to add new todo.')
     }
-    res.status(201).send(newTodoItem)
+    res.status(201).json({newTodoItem})
 }
 
 const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {todoTitle,todoDescription,todoTargetDate,todoStatus,dateCompleted,_id,isArchived} = req.body as {todoTitle:string,todoDescription:string,todoTargetDate:string,todoStatus:string,dateCompleted:string,_id:string,isArchived:boolean}
+    const {title,description,targetDate,status,dateCompleted,_id,isArchived,alarmUsed} = req.body as TodoItemInterface;
     try {
         await Todo.findOneAndUpdate(
-            {_id:userId,"todoList._id":_id},
+            {userId:userId,"todoList._id":_id},
             {$set:{
-                "todoList.$.todoTitle":todoTitle,
-                "todoList.$.todoDescription":todoDescription,
-                "todoList.$.todoTargetDate":todoTargetDate,
-                "todoList.$.todoStatus":todoStatus,
+                "todoList.$.title":title,
+                "todoList.$.description":description,
+                "todoList.$.targetDate":targetDate,
+                "todoList.$.status":status,
                 "todoList.$.dateCompleted":dateCompleted,
+                "todoList.$.alarmUsed":alarmUsed,
                 "todoList.$.isArchived":isArchived,
             }}
         )
@@ -62,15 +66,17 @@ const deleteTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
     const {_id} = req.body as {_id:string};
     try {
-        await Todo.findOneAndUpdate({_id:userId},{$pull:{todoList:{"_id":_id}}},)
+        await Todo.findOneAndUpdate({userId:userId},{$pull:{todoList:{"_id":_id}}},)
     } catch (error) {
         return res.status(500).send('Failed to delete todo.')
+    }
+    // Delete notification
+    try {
+        await Notification.findOneAndUpdate({userId:userId},{$pull:{notificationList:{"notificationParentId":_id}}},)
+    } catch (error) {
+        return res.status(500).send('Failed to update todo.')
     }
     res.status(200).send("Successfully deleted todo")
 }
 
-exports.getTodos = getTodos
-exports.getArchivedTodos = getArchivedTodos
-exports.addNewTodo = addNewTodo
-exports.updateTodo = updateTodo
-exports.deleteTodo = deleteTodo
+export {getTodos,getArchivedTodos,addNewTodo,updateTodo,deleteTodo}

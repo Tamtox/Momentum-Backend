@@ -8,7 +8,9 @@ const userSchema = new mongoose_1.default.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
     password: { type: String, require: true, minlength: 6 },
-    creationDate: { type: String, required: true },
+    creationDate: { type: Date, required: true },
+    lastLogin: { type: Date },
+    utcOffset: { type: Number },
     emailConfirmationStatus: { type: String, required: true, default: "Pending" },
     verificationCode: { type: String, required: true }
 });

@@ -3,21 +3,21 @@ import mongoose from "mongoose";
 // Journal Entry Schema
 interface JournalEntry {
     journalEntry:string,
-    date:string
+    date:Date, /*Date format: yyyy-MM-dd HH:mm:ss*/
 }
 const journalEntrySchema = new mongoose.Schema<JournalEntry>({
     journalEntry:{type:String,required:true},
-    date:{type:String,required:true} /* Date format : "date/month/year" */
+    date:{type:Date,required:true},
 })
 
 // Journal Schema
 interface Journal {
-    _id:string
+    userId:string
     user:string,
     journalEntries:JournalEntry[]
 }
 const journalSchema = new mongoose.Schema<Journal>({
-    _id:{type:String,required:true},
+    userId:{type:String,required:true},
     user:{type:String,required:true},
     journalEntries:[journalEntrySchema]
 })

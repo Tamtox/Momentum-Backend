@@ -1,37 +1,41 @@
 import mongoose from "mongoose";
 
-interface TodoItem {
-    todoTitle:string,
-    todoDescription:string,
-    todoStatus:string,
-    dateCompleted:string, /* Date format : Date.toString() */
-    todoCreationDate:string, /* Date format : Date.toString() */
-    todoTargetDate:string | null /* Date format : Date.toString() */
-    isArchived:boolean
+interface TodoItemInterface {
+    title:string,
+    description:string,
+    status:string,
+    dateCompleted:Date | null, /* Date format : Date.toISOString()*/
+    creationDate:Date, /* Date format : Date.toISOString() */
+    targetDate:Date | null /* Date format : Date.toISOString() */
+    isArchived:boolean,
+    creationUTCOffset:string,
+    alarmUsed:boolean,
+    _id:string
 }
-const todoItemSchema = new mongoose.Schema<TodoItem>({
-    todoTitle:{type:String,required:true},
-    todoDescription:{type:String},
-    todoStatus:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
-    dateCompleted:{type:String,default:""},
-    todoCreationDate:{type:String,required:true},
-    todoTargetDate:{type:String,default:null},
-    isArchived:{type:Boolean,required:true,default:false}
+const todoItemSchema = new mongoose.Schema<TodoItemInterface>({
+    title:{type:String,required:true},
+    description:{type:String},
+    status:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
+    dateCompleted:{type:Date,default:null},
+    creationDate:{type:Date,required:true},
+    targetDate:{type:Date,default:null},
+    isArchived:{type:Boolean,required:true,default:false},
+    creationUTCOffset:{type:String,required:true},
+    alarmUsed:{type:Boolean,required:true},
 })
 
-interface Todo {
-    _id:string
+interface TodoInterface {
+    userId:string
     user:string,
-    todoList:TodoItem[],
+    todoList:TodoItemInterface[],
 }
-const todoSchema = new mongoose.Schema<Todo>({
-    _id:{type:String,required:true},
+const todoSchema = new mongoose.Schema<TodoInterface>({
+    userId:{type:String,required:true},
     user:{type:String,required:true},
     todoList:[todoItemSchema]
 })
 
-const Todo = mongoose.model<Todo>('Todo',todoSchema);   
-const TodoItem = mongoose.model<TodoItem>('Todo Item',todoItemSchema);   
+const Todo = mongoose.model<TodoInterface>('Todo',todoSchema);   
+const TodoItem = mongoose.model<TodoItemInterface>('Todo Item',todoItemSchema);   
 
-exports.Todo = Todo
-exports.TodoItem = TodoItem
+export {TodoItemInterface,Todo,TodoItem};

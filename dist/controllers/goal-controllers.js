@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const { Goal, GoalItem } = require('../models/goal');
+exports.deleteGoal = exports.updateGoal = exports.addNewGoal = exports.getArchivedGoals = exports.getGoals = void 0;
+const { Goal, GoalItem, GoalItemInterface } = require('../models/goal');
 const getGoals = async (req, res, next) => {
     const userId = req.params.userId;
     let goalCluster;
     try {
-        goalCluster = await Goal.findOne({ "_id": userId }, { goalList: { $filter: { input: "$goalList", as: "item", cond: { $eq: ["$$item.isArchived", false] } } } });
+        goalCluster = await Goal.findOne({ userId: userId }, { goalList: { $filter: { input: "$goalList", as: "item", cond: { $eq: ["$$item.isArchived", false] } } } });
     }
     catch (error) {
         return res.status(500).send('Failed to retrieve goal data.');
@@ -13,11 +14,12 @@ const getGoals = async (req, res, next) => {
     // Returns an array of objects
     res.status(200).send(goalCluster.goalList);
 };
+exports.getGoals = getGoals;
 const getArchivedGoals = async (req, res, next) => {
     const userId = req.params.userId;
     let goalCluster;
     try {
-        goalCluster = await Goal.findOne({ "_id": userId }, { goalList: { $filter: { input: "$goalList", as: "item", cond: { $eq: ["$$item.isArchived", true] } } } });
+        goalCluster = await Goal.findOne({ userId: userId }, { goalList: { $filter: { input: "$goalList", as: "item", cond: { $eq: ["$$item.isArchived", true] } } } });
     }
     catch (error) {
         return res.status(500).send('Failed to retrieve goal data.');
@@ -25,12 +27,13 @@ const getArchivedGoals = async (req, res, next) => {
     // Returns an array of objects
     res.status(200).send(goalCluster.goalList);
 };
+exports.getArchivedGoals = getArchivedGoals;
 const addNewGoal = async (req, res, next) => {
     const userId = req.params.userId;
-    const { goalTitle, goalCreationDate, goalTargetDate, goalStatus } = req.body;
-    const newGoalItem = new GoalItem({ goalTitle, goalCreationDate, goalTargetDate, goalStatus });
+    const { title, creationDate, targetDate, status, creationUTCOffset, alarmUsed } = req.body;
+    const newGoalItem = new GoalItem({ title, creationDate, targetDate, status, creationUTCOffset, alarmUsed });
     try {
-        await Goal.findOneAndUpdate({ _id: userId }, { $push: { goalList: newGoalItem } });
+        await Goal.findOneAndUpdate({ userId: userId }, { $push: { goalList: newGoalItem } });
     }
     catch (error) {
         return res.status(500).send('Failed to add new goal.');
@@ -38,17 +41,20 @@ const addNewGoal = async (req, res, next) => {
     // Returns an object
     res.status(201).send(newGoalItem);
 };
+exports.addNewGoal = addNewGoal;
 const updateGoal = async (req, res, next) => {
     const userId = req.params.userId;
-    const { goalTitle, goalTargetDate, goalStatus, dateCompleted, habitId, _id, isArchived } = req.body;
+    const { title, targetDate, status, dateCompleted, habitId, _id, isArchived, alarmUsed } = req.body;
+    ;
     try {
-        await Goal.findOneAndUpdate({ _id: userId, "goalList._id": _id }, { $set: {
-                "goalList.$.goalTitle": goalTitle,
-                "goalList.$.goalTargetDate": goalTargetDate,
-                "goalList.$.goalStatus": goalStatus,
+        await Goal.findOneAndUpdate({ userId: userId, "goalList._id": _id }, { $set: {
+                "goalList.$.title": title,
+                "goalList.$.targetDate": targetDate,
+                "goalList.$.status": status,
                 "goalList.$.dateCompleted": dateCompleted,
                 "goalList.$.habitId": habitId,
                 "goalList.$.isArchived": isArchived,
+                "goalList.$.alarmUsed": alarmUsed,
             } });
     }
     catch (error) {
@@ -56,19 +62,16 @@ const updateGoal = async (req, res, next) => {
     }
     res.status(200).send("Successfully updated goal");
 };
+exports.updateGoal = updateGoal;
 const deleteGoal = async (req, res, next) => {
     const userId = req.params.userId;
     const { _id } = req.body;
     try {
-        await Goal.findOneAndUpdate({ _id: userId }, { $pull: { goalList: { "_id": _id } } });
+        await Goal.findOneAndUpdate({ userId: userId }, { $pull: { goalList: { "_id": _id } } });
     }
     catch (error) {
         return res.status(500).send("Failed to delete goal.");
     }
     res.status(200).send("Successfully deleted goal");
 };
-exports.getGoals = getGoals;
-exports.getArchivedGoals = getArchivedGoals;
-exports.addNewGoal = addNewGoal;
-exports.updateGoal = updateGoal;
 exports.deleteGoal = deleteGoal;
