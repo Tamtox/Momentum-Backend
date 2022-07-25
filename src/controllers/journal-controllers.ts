@@ -11,8 +11,8 @@ const getDate = (clientDayStartTime:number,timezoneOffset:number) => {
 
 const getJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {clientSelectedDayStartTime,timezoneOffset} = req.body as {clientSelectedDayStartTime:number,timezoneOffset:number};
-    const {clientDayStart,clientNextDayStart} = getDate(clientSelectedDayStartTime,timezoneOffset);
+    const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as {clientSelectedDayStartTime:number,clientTimezoneOffset:number};
+    const {clientDayStart,clientNextDayStart} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
     let journalCluster
     try {
         journalCluster = await Journal.findOne({userId:userId},{journalEntries:{$elemMatch:{date:{$gte:clientDayStart,$lt:clientNextDayStart}}}});
@@ -24,8 +24,8 @@ const getJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => 
 
 const updateJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {clientSelectedDayStartTime,timezoneOffset,journalEntry} = req.body as {clientSelectedDayStartTime:number,timezoneOffset:number,journalEntry:string};
-    const {clientDayStart,clientNextDayStart,utcDayStartMidDay} = getDate(clientSelectedDayStartTime,timezoneOffset);
+    const {clientSelectedDayStartTime,clientTimezoneOffset,journalEntry} = req.body as {clientSelectedDayStartTime:number,clientTimezoneOffset:number,journalEntry:string};
+    const {clientDayStart,clientNextDayStart,utcDayStartMidDay} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
     let journalCluster
     try {
         journalCluster = await Journal.findOne({userId:userId},{journalEntries:{$elemMatch:{date:{$gte:clientDayStart,$lt:clientNextDayStart}}}});

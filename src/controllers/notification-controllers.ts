@@ -4,11 +4,11 @@ const {Notification,NotificationItem,NotificationItemInterface} = require('../mo
 
 const getNotifications:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {clientSelectedTime} = req.body as {clientSelectedTime:number};
+    const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as NotificationItemInterface;
     let notificationCluster;
     // Retreives notifications for today and tomorrow
     try{
-        notificationCluster = await Notification.findOne({userId:userId},{notificationList:{$filter:{input:"$notificationList",as:"listItem",cond:{$and:[{$gte:["$$listItem.date",new Date(clientSelectedTime - 86400000)]},{$lt:["$$listItem.date",new Date(clientSelectedTime + 86400000)]}]}}}});
+        notificationCluster = await Notification.findOne({userId:userId},{notificationList:{$filter:{input:"$notificationList",as:"listItem",cond:{$and:[{$gte:["$$listItem.date",clientSelectedDayStartTime]},{$lt:["$$listItem.date",new Date(clientSelectedDayStartTime + 86400000)]}]}}}});
     } catch(error) {
         res.status(500).send("Failed to retrieve notifications.")
     }
@@ -17,7 +17,7 @@ const getNotifications:RequestHandler<{userId:string}> = async (req,res,next) =>
 
 const addNotification:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,utcOffset} = req.body as NotificationItemInterface;
+    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,utcOffset,clientSelectedDayStartTime,clientTimezoneOffset} = req.body as NotificationItemInterface;
     // Add notification if todo has target date
     // const newTodoNotification = new NotificationItem({
     //     date:todoTargetDate,
@@ -37,7 +37,7 @@ const addNotification:RequestHandler<{userId:string}> = async (req,res,next) => 
 
 const updateNotification:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,utcOffset} = req.body as NotificationItemInterface;
+    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,clientSelectedDayStartTime,clientTimezoneOffset} = req.body as NotificationItemInterface;
     // // Update todo notification
     // if(todoTargetDate) {
     //     try {

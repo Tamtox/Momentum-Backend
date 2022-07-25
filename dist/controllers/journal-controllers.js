@@ -11,8 +11,8 @@ const getDate = (clientDayStartTime, timezoneOffset) => {
 };
 const getJournalEntry = async (req, res, next) => {
     const userId = req.params.userId;
-    const { clientSelectedDayStartTime, timezoneOffset } = req.body;
-    const { clientDayStart, clientNextDayStart } = getDate(clientSelectedDayStartTime, timezoneOffset);
+    const { clientSelectedDayStartTime, clientTimezoneOffset } = req.body;
+    const { clientDayStart, clientNextDayStart } = getDate(clientSelectedDayStartTime, clientTimezoneOffset);
     let journalCluster;
     try {
         journalCluster = await Journal.findOne({ userId: userId }, { journalEntries: { $elemMatch: { date: { $gte: clientDayStart, $lt: clientNextDayStart } } } });
@@ -25,8 +25,8 @@ const getJournalEntry = async (req, res, next) => {
 exports.getJournalEntry = getJournalEntry;
 const updateJournalEntry = async (req, res, next) => {
     const userId = req.params.userId;
-    const { clientSelectedDayStartTime, timezoneOffset, journalEntry } = req.body;
-    const { clientDayStart, clientNextDayStart, utcDayStartMidDay } = getDate(clientSelectedDayStartTime, timezoneOffset);
+    const { clientSelectedDayStartTime, clientTimezoneOffset, journalEntry } = req.body;
+    const { clientDayStart, clientNextDayStart, utcDayStartMidDay } = getDate(clientSelectedDayStartTime, clientTimezoneOffset);
     let journalCluster;
     try {
         journalCluster = await Journal.findOne({ userId: userId }, { journalEntries: { $elemMatch: { date: { $gte: clientDayStart, $lt: clientNextDayStart } } } });

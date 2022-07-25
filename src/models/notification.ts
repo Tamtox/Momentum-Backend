@@ -8,6 +8,8 @@ interface NotificationItemInterface {
     dateCompleted:Date | null,
     alarmUsed:boolean,
     utcOffset:string,   
+    clientSelectedDayStartTime:number,
+    clientTimezoneOffset:number,
     _id:string
 }
 const notificationItemSchema = new mongoose.Schema<NotificationItemInterface>({
