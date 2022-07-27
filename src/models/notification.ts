@@ -7,7 +7,7 @@ interface NotificationItemInterface {
     notificationParentTitle:string,
     dateCompleted:Date | null,
     alarmUsed:boolean,
-    utcOffset:string,   
+    utcOffset:string,
     clientSelectedDayStartTime:number,
     clientTimezoneOffset:number,
     _id:string

@@ -15,50 +15,47 @@ const getNotifications:RequestHandler<{userId:string}> = async (req,res,next) =>
     res.status(200).json({notificationList:notificationCluster.notificationList});
 }
 
-const addNotification:RequestHandler<{userId:string}> = async (req,res,next) => {
-    const userId = req.params.userId;
-    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,utcOffset,clientSelectedDayStartTime,clientTimezoneOffset} = req.body as NotificationItemInterface;
+const addNotification = async (notification:NotificationItemInterface,userId:string) => {
+    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,utcOffset} = notification;
     // Add notification if todo has target date
-    // const newTodoNotification = new NotificationItem({
-    //     date:todoTargetDate,
-    //     time: new Date(todoTargetDate).toLocaleTimeString("en-GB"),
-    //     notificationParentId:newTodoItem._id, 
-    //     notificationParentTitle:todoTitle,
-    //     dateCompleted:null,
-    //     alarmUsed:alarmUsed,
-    //     utcOffset:creationUTCOffset,   
-    // })
-    // try {
-    //     await Notification.findOneAndUpdate({userId:userId},{$push:{notificationList:newTodoNotification}})
-    // } catch (error) {
-    //     return res.status(500).send('Failed to add new todo.')
-    // }
+    const newNotification = new NotificationItem({
+        date:date,
+        time: time,
+        notificationParentId:notificationParentId, 
+        notificationParentTitle:notificationParentTitle,
+        dateCompleted:null,
+        alarmUsed:alarmUsed,
+        utcOffset:utcOffset,   
+    })
+    try {
+        await Notification.findOneAndUpdate({userId:userId},{$push:{notificationList:newNotification}})
+    } catch (error) {
+        return null;
+    }
+    return newNotification;
 }
 
-const updateNotification:RequestHandler<{userId:string}> = async (req,res,next) => {
-    const userId = req.params.userId;
-    const {date,time,notificationParentId,notificationParentTitle,dateCompleted,alarmUsed,clientSelectedDayStartTime,clientTimezoneOffset} = req.body as NotificationItemInterface;
-    // // Update todo notification
-    // if(todoTargetDate) {
-    //     try {
-    //         await Notification.findOneAndUpdate(
-    //             {userId:userId,"notificationList.notificationParentId":_id},
-    //             {$set:{
-    //                 "notificationList.$.date":todoTargetDate,
-    //                 "notificationList.$.time":new Date(todoTargetDate).toLocaleTimeString("en-GB"),
-    //                 "notificationList.$.notificationParentTitle":todoTitle,
-    //                 "notificationList.$.alarmUsed":alarmUsed,
-    //             }}
-    //         )
-    //     } catch (error) {
-    //         return res.status(500).send('Failed to update todo.')
-    //     }
-    // }
+const updateNotification = async (notification:NotificationItemInterface,userId:string) => {
+    const {date,time,dateCompleted,alarmUsed,_id} = notification;
+    try {
+        await Notification.findOneAndUpdate(
+            {userId:userId,"notificationList._id":_id},
+            {$set:{
+                "notificationList.$.date":date,
+                "notificationList.$.time":time,
+                "notificationList.$.alarmUsed":alarmUsed,
+                "notificationList.$.dateCompleted":dateCompleted,
+            }}
+        )
+    } catch (error) {
+        return false;
+    }
+    return true;
 }
 
 const updateNotificationStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {dateCompleted,_id} = req.body as NotificationItemInterface;
+    const {_id,dateCompleted} = req.body as NotificationItemInterface;
     try {
         await Notification.findOneAndUpdate(
             {userId:userId,"notificationList._id":_id},
@@ -67,21 +64,19 @@ const updateNotificationStatus:RequestHandler<{userId:string}> = async (req,res,
             }}
         )
     } catch (error) {
-        return res.status(500).send('Failed to update todo.')
+        res.status(500).send("Failed to update notification.")
     }
-    res.status(200).send("Successfully updated notification");
+    return true;
 }
 
-const deleteNotification:RequestHandler<{userId:string}> = async (req,res,next) => {
-    const userId = req.params.userId;
-    const {_id} = req.body as {_id:string};
+const deleteNotification = async (_id:string,userId:string) => {
     // Delete notification
     try {
         await Notification.findOneAndUpdate({userId:userId},{$pull:{notificationList:{"notificationParentId":_id}}},)
     } catch (error) {
-        return res.status(500).send('Failed to delete notification.')
+        return false;
     }
-    res.status(200).send("Successfully deleted notification")
+    return true;
 }
 
 export {getNotifications,addNotification,updateNotification,updateNotificationStatus,deleteNotification};
