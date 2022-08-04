@@ -27,7 +27,7 @@ const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 process.env.TZ = 'Etc/Universal';
 const mongoose = require("mongoose");
-const { MONGO_URI, PORT } = process.env;
+const { MONGO_URI, PORT, MONGO_URIATLAS } = process.env;
 const app = (0, express_1.default)();
 const userRoutes = require('./routes/user-routes');
 const notificationRoutes = require('./routes/notification-routes');
@@ -64,7 +64,7 @@ app.use((error, req, res, next) => {
     res.json({ message: error.message || 'Unknown error' });
 });
 mongoose
-    .connect(MONGO_URI, {
+    .connect(MONGO_URIATLAS, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })

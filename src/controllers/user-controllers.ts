@@ -113,7 +113,7 @@ const signup:RequestHandler = async (req,res,next) => {
     try{
         await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
-        console.log(error)
+        console.log(error);
     }   
     res.status(201).json({name,email,token,emailConfirmationStatus:"Pending"})
 }

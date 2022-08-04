@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTodo = exports.updateTodo = exports.addNewTodo = exports.getArchivedTodos = exports.getTodos = void 0;
 const { Todo, TodoItem } = require('../models/todo');
-const { Notification, NotificationItem, NotificationItemInterface } = require('../models/notification');
+const { Notification, NotificationItem } = require('../models/notification');
 const getTodos = async (req, res, next) => {
     const userId = req.params.userId;
     let todoCluster;
@@ -39,7 +39,26 @@ const addNewTodo = async (req, res, next) => {
     catch (error) {
         return res.status(500).send('Failed to add new todo.');
     }
-    res.status(201).json({ newTodoItem });
+    // Add notification
+    let notification = null;
+    if (targetDate) {
+        notification = new NotificationItem({
+            date: targetDate,
+            time: null,
+            notificationParentId: newTodoItem._id,
+            notificationParentTitle: title,
+            dateCompleted: null,
+            alarmUsed: alarmUsed,
+            utcOffset: creationUTCOffset
+        });
+        try {
+            await Notification.findOneAndUpdate({ userId: userId }, { $push: { notificationList: notification } });
+        }
+        catch (error) {
+            return res.status(500).send('Failed to add new todo notification.');
+        }
+    }
+    res.status(201).json({ newTodoItem, notification });
 };
 exports.addNewTodo = addNewTodo;
 const updateTodo = async (req, res, next) => {
@@ -59,6 +78,18 @@ const updateTodo = async (req, res, next) => {
     catch (error) {
         return res.status(500).send('Failed to update todo.');
     }
+    // Update notification
+    if (targetDate) {
+        try {
+            await Notification.findOneAndUpdate({ userId: userId, "notificationList._id": _id }, { $set: {
+                    "notificationList.$.date": targetDate,
+                    "notificationList.$.alarmUsed": alarmUsed,
+                } });
+        }
+        catch (error) {
+            return res.status(500).send('Failed to update todo notification.');
+        }
+    }
     res.status(200).send("Successfully updated todo");
 };
 exports.updateTodo = updateTodo;
@@ -76,7 +107,7 @@ const deleteTodo = async (req, res, next) => {
         await Notification.findOneAndUpdate({ userId: userId }, { $pull: { notificationList: { "notificationParentId": _id } } });
     }
     catch (error) {
-        return res.status(500).send('Failed to update todo.');
+        return res.status(500).send('Failed to delete todo notification.');
     }
     res.status(200).send("Successfully deleted todo");
 };

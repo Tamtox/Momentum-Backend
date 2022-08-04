@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 process.env.TZ = 'Etc/Universal';
 const mongoose = require("mongoose");
-const { MONGO_URI,PORT } = process.env;
+const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
 const app = express();
 
 const userRoutes = require('./routes/user-routes');
@@ -48,7 +48,7 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
 
 
 mongoose
-.connect(MONGO_URI, {
+.connect(MONGO_URIATLAS, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })

@@ -2,6 +2,7 @@ import {RequestHandler} from "express";
 import { TodoItemInterface } from "../models/todo";
 const {Todo,TodoItem} = require('../models/todo');
 const {Notification,NotificationItem} = require('../models/notification');
+const {addNotification,updateNotification,deleteNotification} = require('./notification-controllers');
 
 
 const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -39,19 +40,9 @@ const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     // Add notification
     let notification = null;
-    if (targetDate) {
-        notification =  new NotificationItem({
-            date:targetDate,
-            time:null,
-            notificationParentId:newTodoItem._id,
-            notificationParentTitle:title,
-            dateCompleted:null,
-            alarmUsed:alarmUsed,
-            utcOffset:creationUTCOffset
-        })
-        try {
-            await Notification.findOneAndUpdate({userId:userId},{$push:{notificationList:notification}})
-        } catch (error) {
+    if(targetDate) {
+        notification = await addNotification(title,targetDate,null,alarmUsed,creationUTCOffset,newTodoItem._id,userId);
+        if(notification === false) {
             return res.status(500).send('Failed to add new todo notification.');
         }
     }
@@ -78,16 +69,15 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
         return res.status(500).send('Failed to update todo.');
     }
     // Update notification
-    if (targetDate) {
-        try {
-            await Notification.findOneAndUpdate(
-                {userId:userId,"notificationList._id":_id},
-                {$set:{
-                    "notificationList.$.date":targetDate,
-                    "notificationList.$.alarmUsed":alarmUsed,
-                }}
-            )
-        } catch (error) {
+    let notification = null;
+    if(targetDate) {
+        notification = updateNotification(title,targetDate,null,alarmUsed,_id,userId);
+        if(notification === false) {
+            return res.status(500).send('Failed to update todo notification.');
+        }
+    } else {
+        const notification = await deleteNotification(_id,userId);
+        if(notification === false) {
             return res.status(500).send('Failed to update todo notification.');
         }
     }
