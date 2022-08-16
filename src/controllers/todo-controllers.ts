@@ -1,8 +1,8 @@
 import {RequestHandler} from "express";
 import { TodoItemInterface } from "../models/todo";
 const {Todo,TodoItem} = require('../models/todo');
-const {Notification,NotificationItem} = require('../models/notification');
-const {addNotification,updateNotification,deleteNotification} = require('./notification-controllers');
+const {Schedule,ScheduleItem} = require('../models/notification');
+const {addScheduleItem,updateScheduleItem,deleteScheduleItem} = require('./notification-controllers');
 
 
 const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -38,15 +38,15 @@ const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send('Failed to add new todo.');
     }
-    // Add notification
-    let notification = null;
+    // Add schedule item
+    let scheduleItem = null;
     if(targetDate) {
-        notification = await addNotification(title,targetDate,null,alarmUsed,creationUTCOffset,newTodoItem._id,userId);
-        if(notification === false) {
-            return res.status(500).send('Failed to add new todo notification.');
+        scheduleItem = await addScheduleItem(title,targetDate,alarmUsed,creationUTCOffset,newTodoItem._id,userId);
+        if(scheduleItem === false) {
+            return res.status(500).send('Failed to add new todo schedule item.');
         }
     }
-    res.status(201).json({newTodoItem,notification});
+    res.status(201).json({newTodoItem,scheduleItem});
 }
 
 const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -68,17 +68,17 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send('Failed to update todo.');
     }
-    // Update notification
-    let notification = null;
+    // Update schedule item
+    let scheduleItem = null;
     if(targetDate) {
-        notification = updateNotification(title,targetDate,null,alarmUsed,_id,userId);
-        if(notification === false) {
-            return res.status(500).send('Failed to update todo notification.');
+        scheduleItem = updateScheduleItem(title,targetDate,alarmUsed,_id,userId);
+        if(scheduleItem === false) {
+            return res.status(500).send('Failed to update todo schedule item.');
         }
     } else {
-        const notification = await deleteNotification(_id,userId);
-        if(notification === false) {
-            return res.status(500).send('Failed to update todo notification.');
+        const scheduleItem = await deleteScheduleItem(_id,userId);
+        if(scheduleItem === false) {
+            return res.status(500).send('Failed to update todo schedule item.');
         }
     }
     res.status(200).send("Successfully updated todo")
@@ -92,11 +92,11 @@ const deleteTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send('Failed to delete todo.')
     }
-    // Delete notification
+    // Delete schedule item
     try {
-        await Notification.findOneAndUpdate({userId:userId},{$pull:{notificationList:{"notificationParentId":_id}}},)
+        await Schedule.findOneAndUpdate({userId:userId},{$pull:{notificationList:{"notificationParentId":_id}}},)
     } catch (error) {
-        return res.status(500).send('Failed to delete todo notification.');
+        return res.status(500).send('Failed to delete todo schedule item.');
     }
     res.status(200).send("Successfully deleted todo")
 }

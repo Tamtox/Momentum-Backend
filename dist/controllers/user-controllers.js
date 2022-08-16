@@ -7,7 +7,7 @@ const { Todo } = require('../models/todo');
 const { Habit } = require('../models/habit');
 const { Journal } = require('../models/journal');
 const { Goal } = require('../models/goal');
-const { Notification } = require('../models/notification');
+const { Schedule } = require('../models/schedule');
 //Dependencies
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -91,17 +91,17 @@ const signup = async (req, res, next) => {
         user: email,
         journalEntries: []
     });
-    const newUserNotification = new Notification({
+    const newUserSchedule = new Schedule({
         userId: newUser.id,
         user: email,
-        notificationList: []
+        schedulenList: []
     });
     try {
         await newUserTodo.save();
         await newUserHabit.save();
         await newUserGoal.save();
         await newUserJournal.save();
-        await newUserNotification.save();
+        await newUserSchedule.save();
     }
     catch (error) {
         return res.status(500).send('Failed to create new user. Please try again later.');
@@ -350,7 +350,7 @@ const deleteUser = async (req, res, next) => {
             await Journal.findOneAndDelete({ userId: userId });
             await Habit.findOneAndDelete({ userId: userId });
             await Goal.findOneAndDelete({ userId: userId });
-            await Notification.findOneAndDelete({ userId: userId });
+            await Schedule.findOneAndDelete({ userId: userId });
         }
         catch (error) {
             return res.status(500).send('Failed to delete user. Please try again later.');

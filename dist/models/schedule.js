@@ -3,16 +3,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Schedule = exports.ScheduleItem = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
-const scheduleEntrySchema = new mongoose_1.default.Schema({
-    time: { type: String, required: true },
-    title: { type: String, required: true },
-    weekdays: { 0: { type: Boolean, required: true }, 1: { type: Boolean, required: true }, 2: { type: Boolean, required: true }, 3: { type: Boolean, required: true }, 4: { type: Boolean, required: true }, 5: { type: Boolean, required: true }, 6: { type: Boolean, required: true } }
+const scheduleItemSchema = new mongoose_1.default.Schema({
+    date: { type: Date, required: true },
+    parentId: { type: String, required: true },
+    parentTitle: { type: String, required: true },
+    dateCompleted: { type: Date, default: null },
+    alarmUsed: { type: Boolean, required: true },
+    utcOffset: { type: String, required: true },
+    isArchived: { type: Boolean, required: true, default: false },
 });
 const scheduleSchema = new mongoose_1.default.Schema({
-    _id: { type: String, required: true },
+    userId: { type: String, required: true },
     user: { type: String, required: true },
-    scheduleEntries: [scheduleEntrySchema]
+    scheduleList: [scheduleItemSchema],
 });
-exports.Schedule = mongoose_1.default.model('Schedule', scheduleSchema);
-exports.ScheduleEntry = mongoose_1.default.model('Schedule Entry', scheduleEntrySchema);
+const Schedule = mongoose_1.default.model('Schedule', scheduleSchema);
+exports.Schedule = Schedule;
+const ScheduleItem = mongoose_1.default.model('Schedule List Item', scheduleItemSchema);
+exports.ScheduleItem = ScheduleItem;

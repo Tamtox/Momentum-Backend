@@ -30,7 +30,7 @@ const mongoose = require("mongoose");
 const { MONGO_URI, PORT, MONGO_URIATLAS } = process.env;
 const app = (0, express_1.default)();
 const userRoutes = require('./routes/user-routes');
-const notificationRoutes = require('./routes/notification-routes');
+const scheduleRoutes = require('./routes/schedule-routes');
 const todoRoutes = require('./routes/todo-routes');
 const habitRoutes = require('./routes/habit-routes');
 const journalRoutes = require('./routes/journal-routes');
@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 });
 //Routes 
 app.use('/users', userRoutes);
-app.use('/notification', notificationRoutes);
+app.use('/schedule', scheduleRoutes);
 app.use('/todo', todoRoutes);
 app.use('/habits', habitRoutes);
 app.use('/journal', journalRoutes);
