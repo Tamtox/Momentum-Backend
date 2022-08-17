@@ -9,20 +9,26 @@ const {Schedule} = require('../models/schedule');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 import { RequestHandler } from "express";
-const { SECRET_STRING,EMAIL,GMAIL_PASS} = process.env;
+const { SECRET_STRING,EMAIL,CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN} = process.env;
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 
 const sendVerificationMail = async (email:string,verificationCode:string,verificationMode:boolean) => {
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
+            type: "OAuth2",
             user: EMAIL,
-            pass:GMAIL_PASS
+            // accessToken,
+            clientId: CLIENT_ID,
+            clientSecret: CLIENT_SECRET,
+            refreshToken: REFRESH_TOKEN
         }
     });
     const mailOptions = {
-        from: EMAIL,
+        from:EMAIL,
         to: email,  
         subject: `${verificationMode ? 'Verification letter for Momentum' : 'Password reset letter for Momentum'}`,
         text: `${verificationMode ? 'Verification code' : 'Temporary password'} : ${verificationCode}`

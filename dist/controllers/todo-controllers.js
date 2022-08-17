@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTodo = exports.updateTodo = exports.addNewTodo = exports.getArchivedTodos = exports.getTodos = void 0;
 const { Todo, TodoItem } = require('../models/todo');
-const { Schedule, ScheduleItem } = require('../models/notification');
-const { addScheduleItem, updateScheduleItem, deleteScheduleItem } = require('./notification-controllers');
+const { Schedule, ScheduleItem } = require('../models/schedule');
+const { addScheduleItem, updateScheduleItem, deleteScheduleItem } = require('./schedule-controllers');
 const getTodos = async (req, res, next) => {
     const userId = req.params.userId;
     let todoCluster;

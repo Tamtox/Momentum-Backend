@@ -1,8 +1,8 @@
 import {RequestHandler} from "express";
 import { TodoItemInterface } from "../models/todo";
 const {Todo,TodoItem} = require('../models/todo');
-const {Schedule,ScheduleItem} = require('../models/notification');
-const {addScheduleItem,updateScheduleItem,deleteScheduleItem} = require('./notification-controllers');
+const {Schedule,ScheduleItem} = require('../models/schedule');
+const {addScheduleItem,updateScheduleItem,deleteScheduleItem} = require('./schedule-controllers');
 
 
 const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
