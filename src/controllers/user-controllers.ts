@@ -9,14 +9,14 @@ const {Schedule} = require('../models/schedule');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 import { RequestHandler } from "express";
-const { SECRET_STRING,EMAIL,CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN} = process.env;
+const { SECRET_STRING,EMAIL,CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN,SMTP_PORT,SMTP_HOST} = process.env;
 const nodemailer = require("nodemailer");
 const { google } = require("googleapis");
 
 const sendVerificationMail = async (email:string,verificationCode:string,verificationMode:boolean) => {
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
+        host:SMTP_HOST,
+        port:SMTP_PORT,
         secure: true,
         auth: {
             type: "OAuth2",
@@ -35,7 +35,7 @@ const sendVerificationMail = async (email:string,verificationCode:string,verific
     };
     return await transporter.sendMail(mailOptions, function(error:any, info:any){
         if (error) {
-            console.log(error);
+            console.log(error); 
         }
     }); 
 }
