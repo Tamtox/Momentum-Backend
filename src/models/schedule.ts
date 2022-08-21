@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 
 interface ScheduleItemInterface {
     date:Date /* Date format : .toLocaleString() */
+    time:string|null,
     parentId:string, 
     parentTitle:string,
+    parentType:string,
     dateCompleted:Date | null,
     alarmUsed:boolean,
     utcOffset:string,
@@ -14,8 +16,10 @@ interface ScheduleItemInterface {
 }
 const scheduleItemSchema = new mongoose.Schema<ScheduleItemInterface>({
     date:{type:Date,required:true},
+    time:{type:String,required:false,default:null},
     parentId:{type:String,required:true},
     parentTitle:{type:String,required:true},
+    parentType:{type:String,required:true},
     dateCompleted:{type:Date, default:null},
     alarmUsed:{type:Boolean,required:true},
     utcOffset:{type:String,required:true},

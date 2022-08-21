@@ -18,7 +18,7 @@ interface HabitsListItemInterface {
     title:string,
     time:string | null, /* Date format : .toLocaleTimeString() */
     creationDate:Date, /* Date format : .getTime() */
-    weekdays:{0:boolean,1:boolean,2:boolean,3:boolean,4:boolean,5:boolean,6:boolean},
+    weekdays:{[weekday:number]:boolean},
     goalId:string | null,
     goalTargetDate:Date | null, /* Date format : .getTime() */
     isArchived:boolean,

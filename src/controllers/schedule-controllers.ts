@@ -17,18 +17,23 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     let scheduleCluster;
     // Retreives schedule for selected day
     try{
-        scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"listItem",cond:{$and:[{$gte:["$$listItem.date",clientDayStart]},{$lt:["$$listItem.date",clientNextDayStart]}]}}}});
+        scheduleCluster = await Schedule.findOne({userId:userId},
+            {scheduleList:{$filter:{input:"$scheduleList",as:"listItem",cond:{$and:[{$gte:["$$listItem.date",clientDayStart]},{$lt:["$$listItem.date",clientNextDayStart]},
+            {$eq:["$$listItem.isArchived",false]}]}}}}
+        );
     } catch(error) {
         res.status(500).send("Failed to retrieve schedule.")
     }
     res.status(200).json({scheduleList:scheduleCluster.scheduleList});
 }
 
-const addScheduleItem = async (title:string,targetDate:string,alarmUsed:boolean,creationUTCOffset:number,_id:string,userId:string) => {
+const addPairedScheduleItem = async (title:string,time:string|null,type:string,targetDate:string,alarmUsed:boolean,creationUTCOffset:number,_id:string,userId:string) => {
     let scheduleItem =  new ScheduleItem({
         date:targetDate,
+        time:time,
         parentId:_id,
         parentTitle:title,
+        parentType:type,
         dateCompleted:null,
         alarmUsed:alarmUsed,
         utcOffset:creationUTCOffset
@@ -41,14 +46,16 @@ const addScheduleItem = async (title:string,targetDate:string,alarmUsed:boolean,
     return scheduleItem;
 }
 
-const updateScheduleItem = async (title:string,targetDate:string,alarmUsed:boolean,_id:string,userId:string) => {
+const updatePairedScheduleItem = async (title:string,time:string|null,targetDate:string,alarmUsed:boolean,isArchived:boolean,_id:string,userId:string) => {
     try {
         await Schedule.findOneAndUpdate(
             {userId:userId,"scheduleList.parentId":_id},
             {$set:{
                 "scheduleList.$.parentTitle":title,
                 "scheduleList.$.date":targetDate,
+                "scheduleList.$.time":time,
                 "scheduleList.$.alarmUsed":alarmUsed,
+                "scheduleList.$.isArchived":isArchived,
             }}
         )
     } catch (error) {
@@ -73,13 +80,13 @@ const updateScheduleItemStatus:RequestHandler<{userId:string}> = async (req,res,
     res.status(200).send("Successfully updated schedule");
 }
 
-const deleteScheduleItem = async (_id:string,userId:string) => {
+const deletePairedScheduleItem = async (_id:string,userId:string) => {
     try {
-        await Schedule.findOneAndUpdate({userId:userId},{$pull:{scheduleList:{"parentId":_id}}},)
+        await Schedule.updateMany({userId:userId},{$pull:{scheduleList:{"parentId":_id}}},{"multi": true})
     } catch (error) {
         return false;
     }
     return true;
 }
 
-export {getSchedule,addScheduleItem,updateScheduleItem,updateScheduleItemStatus,deleteScheduleItem};
+export {getSchedule,addPairedScheduleItem,updatePairedScheduleItem,updateScheduleItemStatus,deletePairedScheduleItem};

@@ -7,6 +7,7 @@ interface TodoItemInterface {
     dateCompleted:Date | null, /* Date format : Date.toISOString()*/
     creationDate:Date, /* Date format : Date.toISOString() */
     targetDate:Date | null /* Date format : Date.toISOString() */
+    targetTime:string | null, /* Date format : .toLocaleTimeString() */
     isArchived:boolean,
     creationUTCOffset:string,
     alarmUsed:boolean,
@@ -19,6 +20,7 @@ const todoItemSchema = new mongoose.Schema<TodoItemInterface>({
     dateCompleted:{type:Date,default:null},
     creationDate:{type:Date,required:true},
     targetDate:{type:Date,default:null},
+    targetTime:{type:String,default:null},
     isArchived:{type:Boolean,required:true,default:false},
     creationUTCOffset:{type:String,required:true},
     alarmUsed:{type:Boolean,required:true},
