@@ -1,13 +1,10 @@
 import { RequestHandler } from "express";
-import { ScheduleItem, ScheduleItemInterface } from "../models/schedule";
 import { HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
 const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
-const {addPairedScheduleItem,updatePairedScheduleItem,deletePairedScheduleItem} = require('./schedule-controllers');
 
 // Habit Entries generation algorithm
 const populateWeekWithHabitEntries = (habitList:HabitsListItemInterface[],weekStartTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:any[]) => {
     const newHabitEntries:HabitsListItemInterface[] = [];
-    const newHabitScheduleItems:ScheduleItemInterface[] = [];
     for (let habitListItem of habitList ) {
         const habitId = habitListItem._id;
         for(let i = 1;i<=7;i++) {
@@ -37,7 +34,6 @@ const populateWeekWithHabitEntries = (habitList:HabitsListItemInterface[],weekSt
             }
             if(habitListItem.weekdays[weekday]) {
                 const newHabitEntry = new HabitEntry({date:new Date(date),habitId,habitEntryStatus,isArchived:false,dateCompleted});
-                const newScheduleItem = new ScheduleItem({date:new Date(date),parentId:habitListItem._id,parentTitle:habitListItem.title})
                 newHabitEntries.push(newHabitEntry);
             }
         }
@@ -96,21 +92,21 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const newHabit = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
     const newHabitEntries:any[] = populateWeekWithHabitEntries([newHabit],utcWeekStartMidDay);
     try {
-        await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}},)
-        await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}})
+        await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
+        await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
     } catch (error) {
-        return res.status(500).send("Failed to add new habit.")
+        return res.status(500).send("Failed to add new habit.");
     }
-    res.status(200).json({newHabit,newHabitEntries})
+    res.status(200).json({newHabit,newHabitEntries});
 }
 
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {habitEntryStatus,dateCompleted,_id} = req.body as HabitEntryInterface;
+    const {status,dateCompleted,_id} = req.body as HabitEntryInterface;
     try {
         await Habit.findOneAndUpdate(
             {userId:userId,"habitEntries._id":_id},
-            {$set:{[`habitEntries.$.habitEntryStatus`]:habitEntryStatus,"habitEntries.$.dateCompleted":dateCompleted}})
+            {$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
     } catch (error) {
         return res.status(500).send("Failed to update habit.")
     }
@@ -248,12 +244,7 @@ const deleteHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
             {userId:userId},
             {$pull:{habitEntries:{"habitId":_id}}},
             {"multi": true}
-        )
-        // Delete schedule items
-        const scheduleItemDelete = await deletePairedScheduleItem(_id,userId);
-        if(!scheduleItemDelete) {
-            return res.status(500).send('Failed to delete habit schedule item.');
-        }
+        )   
     } catch (error) {
         return res.status(500).send("Failed to delete habit.")
     }
@@ -261,4 +252,3 @@ const deleteHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 }
 
 export {getHabits,getArchivedHabits,addNewHabit,populateHabit,updateHabitEntryStatus,updateHabit,updateHabitArchiveStatus,deleteHabit};
-

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 interface HabitEntryInterface {
     date:Date /* Date format : .getTime() */
-    habitEntryStatus:string,
+    status:string,
     dateCompleted:Date | null /* Date format : .getTime() */
     habitId:string,
     _id:string
@@ -10,7 +10,7 @@ interface HabitEntryInterface {
 const habitEntrySchema = new mongoose.Schema<HabitEntryInterface>({
     date:{type:Date,required:true},
     habitId:{type:String,required:true},
-    habitEntryStatus:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
+    status:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
     dateCompleted:{type:Date,default:null},
 })
 
@@ -25,6 +25,7 @@ interface HabitsListItemInterface {
     creationUTCOffset:number,
     alarmUsed:boolean
     _id:string,
+    entries:HabitEntryInterface[],
     clientCurrentWeekStartTime:number,
     clientSelectedWeekStartTime:number,
     clientTimezoneOffset:number,

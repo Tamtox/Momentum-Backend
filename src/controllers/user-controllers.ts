@@ -323,11 +323,11 @@ const deleteUser:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     if(existingUser) {
         try{
-            await User.findOneAndDelete({userId:userId})
-            await Todo.findOneAndDelete({userId:userId})
-            await Journal.findOneAndDelete({userId:userId})
-            await Habit.findOneAndDelete({userId:userId})
-            await Goal.findOneAndDelete({userId:userId})
+            await User.findOneAndDelete({userId:userId});
+            await Todo.findOneAndDelete({userId:userId});
+            await Journal.findOneAndDelete({userId:userId});
+            await Habit.findOneAndDelete({userId:userId});
+            await Goal.findOneAndDelete({userId:userId});
             await Schedule.findOneAndDelete({userId:userId})
         } catch(error) {
             return res.status(500).send('Failed to delete user. Please try again later.')

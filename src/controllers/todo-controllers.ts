@@ -13,7 +13,7 @@ const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
         return res.status(500).send('Failed to retrieve todo data.')
     }
     // Returns an array of objects
-    res.status(200).json(todoCluster.todoList)
+    res.status(200).json(todoCluster.todoList);
 }
 
 const getArchivedTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -25,7 +25,7 @@ const getArchivedTodos:RequestHandler<{userId:string}> = async (req,res,next) =>
         return res.status(500).send('Failed to retrieve todo data.')
     }
     // Returns an array of objects
-    res.status(200).json(todoCluster.todoList)
+    res.status(200).json(todoCluster.todoList);
 }
 
 const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -68,7 +68,7 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
         )
         // Update schedule item
         if(targetDate) {
-            scheduleItem = updatePairedScheduleItem(title,targetDate,alarmUsed,isArchived,_id,userId);
+            scheduleItem = updatePairedScheduleItem(title,targetTime,targetDate,alarmUsed,isArchived,_id,userId);
             if(!scheduleItem) {
                 return res.status(500).send('Failed to update todo schedule item.');
             }

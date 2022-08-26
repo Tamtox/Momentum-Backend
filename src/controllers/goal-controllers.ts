@@ -24,7 +24,7 @@ const getArchivedGoals:RequestHandler<{userId:string}> = async (req,res,next) =>
         return res.status(500).send('Failed to retrieve goal data.')
     }
     // Returns an array of objects
-    res.status(200).send(goalCluster.goalList)
+    res.status(200).send(goalCluster.goalList);
 }
 
 const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -42,10 +42,10 @@ const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
             }
         }
     } catch (error) {
-        return res.status(500).send('Failed to add new goal.')
+        return res.status(500).send('Failed to add new goal.');
     }
     // Returns an object
-    res.status(201).send(newGoalItem)
+    res.status(201).json({newGoalItem,scheduleItem});
 }
 
 const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -78,9 +78,9 @@ const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
             }
         }
     } catch (error) {
-        return res.status(500).send('Failed to update goal.')
+        return res.status(500).send('Failed to update goal.');
     }
-    res.status(200).send("Successfully updated goal")
+    res.status(200).send("Successfully updated goal");
 }
 
 const deleteGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -94,9 +94,9 @@ const deleteGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
             return res.status(500).send('Failed to delete goal schedule item.');
         }
     } catch (error) {
-        return res.status(500).send("Failed to delete goal.")
+        return res.status(500).send("Failed to delete goal.");
     }
-    res.status(200).send("Successfully deleted goal")
+    res.status(200).send("Successfully deleted goal");
 }
 
 export {getGoals,getArchivedGoals,addNewGoal,updateGoal,deleteGoal}
