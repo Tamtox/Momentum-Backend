@@ -2,9 +2,28 @@ import { RequestHandler } from "express";
 import { HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
 const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
 
+// Attach habit entries to habits
+const attachEntriesToItems = (habitList:HabitsListItemInterface[],habitEntries:HabitEntryInterface[]) => {
+    const habitEntriesCpy = [...habitEntries];
+    const newhabitList = habitList.map((habitListItem:any)=>{
+        habitListItem._doc.entries = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+        const habitId = habitListItem.id;
+        for(let i = 0; i < habitEntriesCpy.length; i++) {
+            if(habitId === habitEntriesCpy[i].habitId) {
+                const weekday = new Date(habitEntriesCpy[i].date).getDay();
+                habitListItem._doc.entries[weekday] =  habitEntriesCpy[i];
+                habitEntriesCpy.splice(i,1);
+                i--;
+            }
+        }
+        return habitListItem;
+    })
+    return newhabitList;
+}
+
 // Habit Entries generation algorithm
 const populateWeekWithHabitEntries = (habitList:HabitsListItemInterface[],weekStartTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:any[]) => {
-    const newHabitEntries:HabitsListItemInterface[] = [];
+    const newHabitEntries:HabitEntryInterface[] = [];
     for (let habitListItem of habitList ) {
         const habitId = habitListItem._id;
         for(let i = 1;i<=7;i++) {
@@ -60,6 +79,7 @@ const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to retrieve habit data.")
     }   
+    const habitList = attachEntriesToItems(habitListCluster.habitList,habitEntriesCluster.habitEntries);
     // Create habit entries for the week of selected day if they do not exist 
     if(habitEntriesCluster.habitEntries.length < 1) {
         const newHabitEntries:any[] = populateWeekWithHabitEntries(habitListCluster.habitList,utcWeekStartMidDay);
@@ -70,7 +90,7 @@ const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
         }
         res.status(200).json({habitList:habitListCluster.habitList,habitEntries:newHabitEntries})
     } else {
-        res.status(200).json({habitList:habitListCluster.habitList,habitEntries:habitEntriesCluster.habitEntries})
+        res.status(200).json({habitList});
     }
 }
 
@@ -89,15 +109,16 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     const {title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
-    const newHabit = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
-    const newHabitEntries:any[] = populateWeekWithHabitEntries([newHabit],utcWeekStartMidDay);
+    let newHabit:HabitsListItemInterface = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
+    const newHabitEntries:HabitEntryInterface[] = populateWeekWithHabitEntries([newHabit],utcWeekStartMidDay);
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
-    res.status(200).json({newHabit,newHabitEntries});
+    newHabit = attachEntriesToItems([newHabit],newHabitEntries)[0];
+    res.status(200).json({newHabit});
 }
 
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
