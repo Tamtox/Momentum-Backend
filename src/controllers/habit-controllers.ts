@@ -6,7 +6,9 @@ const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
 const attachEntriesToItems = (habitList:HabitsListItemInterface[],habitEntries:HabitEntryInterface[]) => {
     const habitEntriesCpy = [...habitEntries];
     const newhabitList = habitList.map((habitListItem:any)=>{
-        habitListItem._doc.entries = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+        if(!habitListItem._doc.entries) {
+            habitListItem._doc.entries = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+        }
         const habitId = habitListItem.id;
         for(let i = 0; i < habitEntriesCpy.length; i++) {
             if(habitId === habitEntriesCpy[i].habitId) {
@@ -30,7 +32,7 @@ const populateWeekWithHabitEntries = (habitList:HabitsListItemInterface[],weekSt
             const date = weekStartTime + 86400000 * (i-1);
             const weekday = i===7 ? 0 : i;
             const dateCompleted = null;
-            let habitEntryStatus = 'Pending';
+            let status = 'Pending';
             // Stop creating entries if selected date is before habit creation week's start
             const habitCreationTime = new Date(habitListItem.creationDate).getTime() + habitListItem.creationUTCOffset * - 60000;
             const habitCreationDatesWeekStart = new Date(habitCreationTime).setHours(12,0,0,0) + 86400000 * (new Date(habitCreationTime).getDay()? 1- new Date(habitCreationTime).getDay() : -6);
@@ -45,14 +47,14 @@ const populateWeekWithHabitEntries = (habitList:HabitsListItemInterface[],weekSt
             }
             // Check if existing entry status is complete
             if(selectedHabitEntries) {
-                selectedHabitEntries.map((entry:any)=>{
+                selectedHabitEntries.map((entry:HabitEntryInterface)=>{
                     if(new Date(entry.date).getDay() == weekday ) {
-                        entry.habitEntryStatus === 'Complete' ? habitEntryStatus = 'Complete' : habitEntryStatus = 'Pending';
+                        entry.status === 'Complete' ? status = 'Complete' : status = 'Pending';
                     }
                 })
             }
             if(habitListItem.weekdays[weekday]) {
-                const newHabitEntry = new HabitEntry({date:new Date(date),habitId,habitEntryStatus,isArchived:false,dateCompleted});
+                const newHabitEntry = new HabitEntry({date:new Date(date),habitId,status,isArchived:false,dateCompleted});
                 newHabitEntries.push(newHabitEntry);
             }
         }
@@ -78,42 +80,32 @@ const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
         habitEntriesCluster = await Habit.findOne({userId:userId},{habitEntries:{$filter:{input:"$habitEntries",as:"entry",cond:{$and:[{$gte:["$$entry.date",clientWeekStart]},{$lt:["$$entry.date",clientNextWeekStart]}]}}}});
     } catch (error) {
         return res.status(500).send("Failed to retrieve habit data.")
-    }   
-    const habitList = attachEntriesToItems(habitListCluster.habitList,habitEntriesCluster.habitEntries);
-    // Create habit entries for the week of selected day if they do not exist 
-    if(habitEntriesCluster.habitEntries.length < 1) {
-        const newHabitEntries:any[] = populateWeekWithHabitEntries(habitListCluster.habitList,utcWeekStartMidDay);
-        try {
-            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}})
-        } catch (error) {
-            return res.status(500).send("Failed to retrieve habit data.")
-        }
-        res.status(200).json({habitList:habitListCluster.habitList,habitEntries:newHabitEntries})
-    } else {
-        res.status(200).json({habitList});
     }
+    const newHabitEntries:any[] = populateWeekWithHabitEntries(habitListCluster.habitList,utcWeekStartMidDay); 
+    let habitList = attachEntriesToItems(habitListCluster.habitList,newHabitEntries);
+    habitList = attachEntriesToItems(habitList,habitEntriesCluster.habitEntries);
+    res.status(200).json({habitList});
 }
 
 const getArchivedHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
-    const userId = req.params.userId
-    let archivedHabitListCluster
+    const userId = req.params.userId;
+    let archivedHabitListCluster;
     try { 
         archivedHabitListCluster = await Habit.findOne({userId:userId},{habitList:{$filter:{input:"$habitList",as:"item",cond:{$eq:["$$item.isArchived",true]}}}});
     } catch (error) {
-        return res.status(500).send("Failed to retrieve habit data.")
+        return res.status(500).send("Failed to retrieve habit data.");
     }
-    res.status(200).json({archivedHabitList:archivedHabitListCluster.habitList})
+    res.status(200).json({archivedHabitList:archivedHabitListCluster.habitList});
 }
 
 const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
-    const userId = req.params.userId
+    const userId = req.params.userId;
     const {title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
     let newHabit:HabitsListItemInterface = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
     const newHabitEntries:HabitEntryInterface[] = populateWeekWithHabitEntries([newHabit],utcWeekStartMidDay);
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
-        await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
@@ -123,15 +115,32 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {status,dateCompleted,_id} = req.body as HabitEntryInterface;
+    const {status,habitId,dateCompleted,_id,date} = req.body as HabitEntryInterface;
+    // Find if entry exists 
+    let habitEntriesCluster;
     try {
-        await Habit.findOneAndUpdate(
-            {userId:userId,"habitEntries._id":_id},
-            {$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
+        habitEntriesCluster = await Habit.findOne({userId:userId},{habitEntries:{$elemMatch:{"_id":_id}}});
     } catch (error) {
-        return res.status(500).send("Failed to update habit.")
+        return res.status(500).send("Failed to update habit.");
     }
-    res.status(200).send("Successfully updated habit")
+    // Update status if exists or push if doesnt
+    if (habitEntriesCluster.habitEntries.length > 0) {
+        try {
+            await Habit.findOneAndUpdate(
+                {userId:userId,"habitEntries._id":_id},
+                {$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
+        } catch (error) {
+            return res.status(500).send("Failed to update habit.");
+        }
+    } else {
+        const newEntry = new HabitEntry({date,status,habitId,dateCompleted,_id});
+        try {
+            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:newEntry}});
+        } catch (error) {
+            return res.status(500).send("Failed to update habit.");
+        }
+    }
+    res.status(200).send("Successfully updated habit");
 }
 
 const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -158,19 +167,15 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "habitList.$.alarmUsed":alarmUsed,
             }
         })
-        existingEntriesCluster = await Habit.findOne({userId:userId},{habitEntries:{$filter:{input:"$habitEntries",as:"entry",cond:{$and:[{$gte:["$$entry.date",clientWeekStart]},{$lt:["$$entry.date",clientNextWeekStart]}]}}}});
+        existingEntriesCluster = await Habit.findOne({userId:userId},{habitEntries:{$filter:{input:"$habitEntries",as:"entry",cond:{$and:[{$gte:["$$entry.date",clientWeekStart]},{$lt:["$$entry.date",clientNextWeekStart]},{$eq:["$$entry.habitId",_id]}]}}}});
     } catch (error) {
         return res.status(500).send("Failed to update habit.")
     }
     const selectedHabit = habitListCluster.habitList[0];
-    const selectedHabitEntries = existingEntriesCluster.habitEntries.filter((entry:any)=>{
-        if(entry.habitId === _id) {
-            return entry
-        }
-    })
-    // // Repopulate habit entries based on updated habit if weekdays change
+    const selectedHabitEntries = existingEntriesCluster.habitEntries;
+    // Repopulate habit entries based on updated habit if weekdays change
     if(weekdays && (Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString())) {
-        const newHabitEntries:any[] = populateWeekWithHabitEntries([{...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived}],utcWeekStartMidDay,false,selectedHabitEntries);
+        const newHabitEntries:HabitEntryInterface[] = populateWeekWithHabitEntries([{...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived}],utcWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {
             await Habit.updateMany(
@@ -182,12 +187,20 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
             return res.status(500).send("Failed to update habit.");
         }
         // Push new entries
+        const completeEntries = newHabitEntries.filter((entry:HabitEntryInterface) => entry.status === 'Complete');
         try {
-            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
+            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:completeEntries}}});
         } catch (error) {
-            return res.status(500).send("Failed to update habit.")
+            return res.status(500).send("Failed to update habit.");
         }
-        res.status(200).send(newHabitEntries);
+        const newEntries:{[weekday:number]:HabitEntryInterface|null} = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+        for(let i = 0; i < newHabitEntries.length; i++) {
+            const weekday = new Date(newHabitEntries[i].date).getDay();
+            newEntries[weekday] =  newHabitEntries[i];
+            newHabitEntries.splice(i,1);
+            i--;
+        }
+        res.status(200).json({newEntries});
     } else {
         res.status(200).send("Habit updated successfully.")
     }
@@ -204,15 +217,10 @@ const populateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to populate habit.");
     }
-    const selectedHabit = habitListCluster.habitList[0];
     // Create new entries
-    const newPopulatedEntries:any[] = populateWeekWithHabitEntries([selectedHabit],utcWeekStartMidDay,true);
-    try {
-        await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newPopulatedEntries}}});
-    } catch (error) {
-        return res.status(500).send("Failed to populate habit.");
-    }
-    res.status(200).json({newPopulatedEntries});
+    const newPopulatedEntries:any[] = populateWeekWithHabitEntries(habitListCluster.habitList,utcWeekStartMidDay,true);
+    const populatedHabit = attachEntriesToItems(habitListCluster.habitList,newPopulatedEntries)[0];
+    res.status(200).json({populatedHabit});
 }
 
 const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -230,26 +238,30 @@ const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,
     } catch (error) {
         return res.status(500).send("Failed to update habit.");
     }
-    // Populate habit entries for this week if restored habit has none
+    // Populate habit entries for this week if habit is restored
     if(!isArchived) {
-        let habitEntriesCluster
+        let habitEntriesCluster;
         try{
-            habitEntriesCluster = await Habit.findOne({userId:userId},{habitEntries:{$filter:{input:"$habitEntries",as:"entry",cond:{$and:[{$gte:["$$entry.date",clientWeekStart]},{$lt:["$$entry.date",clientNextWeekStart]}]}}}});
+            habitEntriesCluster = await Habit.findOne({userId:userId},{habitEntries:{$filter:{input:"$habitEntries",as:"entry",cond:{$and:[{$gte:["$$entry.date",clientWeekStart]},{$lt:["$$entry.date",clientNextWeekStart]},{$eq:["$$entry.habitId",_id]}]}}}});
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
-        const habitEntries = habitEntriesCluster.habitEntries.filter((item:any)=>item.habitId === _id);
-        if(habitEntries.length < 1) {
-            const newHabitEntries:any[] = populateWeekWithHabitEntries([req.body],utcWeekStartMidDay);
-            try {
-                await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
-            } catch (error) {
-                return res.status(500).send("Failed to update habit.");
-            }
-            res.status(200).json({habitEntries:newHabitEntries});
-        } else {
-            res.status(200).json({habitEntries:habitEntriesCluster.habitEntries});
+        const selectedHabitEntries = habitEntriesCluster.habitEntries;
+        const newHabitEntries:HabitEntryInterface[] = populateWeekWithHabitEntries([req.body],utcWeekStartMidDay,false,selectedHabitEntries);
+        const completeEntries = newHabitEntries.filter((entry:HabitEntryInterface) => entry.status === 'Complete');
+        try {
+            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:completeEntries}}});
+        } catch (error) {
+            return res.status(500).send("Failed to update habit.");
         }
+        const newEntries:{[weekday:number]:HabitEntryInterface|null} = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+        for(let i = 0; i < newHabitEntries.length; i++) {
+            const weekday = new Date(newHabitEntries[i].date).getDay();
+            newEntries[weekday] =  newHabitEntries[i];
+            newHabitEntries.splice(i,1);
+            i--;
+        }
+        res.status(200).json({newEntries});
     } else {
         res.status(200).send("Habit successfully archived.");
     }
