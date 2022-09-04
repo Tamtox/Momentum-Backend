@@ -11,7 +11,7 @@ const getTodos:RequestHandler<{userId:string}> = async (req,res,next) => {
         todoCluster = await Todo.findOne({userId:userId},{todoList:{$filter:{input:"$todoList",as:"item",cond:{$eq:["$$item.isArchived",false]}}}});
     } catch (error) {
         return res.status(500).send('Failed to retrieve todo data.')
-    }
+    }   
     // Returns an array of objects
     res.status(200).json(todoCluster.todoList);
 }
