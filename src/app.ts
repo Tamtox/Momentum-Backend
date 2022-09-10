@@ -35,15 +35,14 @@ app.use('/goals',goalRoutes);
 
 // Unknown routes
 app.use((req:Request,res:Response,next:NextFunction)=>{
-    res.status(404).send("Route doesn't exist");
-    return
+    return res.status(404).send("Route doesn't exist");
 })
 
 app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     if(res.headersSent) {
-        return next(error)
+        return next(error);
     }
-    res.json({message:error.message||'Unknown error'})
+    res.json({message:error.message||'Unknown error'});
 })
 
 

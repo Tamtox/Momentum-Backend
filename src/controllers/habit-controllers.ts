@@ -2,8 +2,8 @@ import { RequestHandler } from "express";
 import { HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
 const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
 
-// Habit Entries generation algorithm
-const populateWeekWithHabitEntries = (habitItem:HabitsListItemInterface,weekStartTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:any[]) => {
+// Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
+const populateWeekWithHabitEntries = (habitItem:HabitsListItemInterface,weekStartTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:HabitEntryInterface[]) => {
     const newHabitEntries:{[weekday:number]:HabitEntryInterface|null|boolean} = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
     const habitId = habitItem._id;
     for(let i = 1;i<=7;i++) {
@@ -25,8 +25,8 @@ const populateWeekWithHabitEntries = (habitItem:HabitsListItemInterface,weekStar
         }
         // Check if existing entry status is complete
         if(selectedHabitEntries) {
-            selectedHabitEntries.map((entry:HabitEntryInterface)=>{
-                if(new Date(entry.date).getDay() == weekday ) {
+            selectedHabitEntries.forEach((entry:HabitEntryInterface)=>{
+                if(new Date(entry.date).getDay() === weekday ) {
                     entry.status === 'Complete' ? status = 'Complete' : status = 'Pending';
                     dateCompleted = entry.dateCompleted;
                 }
@@ -35,7 +35,7 @@ const populateWeekWithHabitEntries = (habitItem:HabitsListItemInterface,weekStar
         if(habitItem.weekdays[weekday]) {
             newHabitEntries[weekday] = true;
             if(populateBeforeCreationDate || selectedHabitEntries) {
-                const newHabitEntry = new HabitEntry({date:new Date(date),habitId,status,isArchived:false,dateCompleted});
+                const newHabitEntry:HabitEntryInterface = new HabitEntry({date:new Date(date),habitId,status,isArchived:false,dateCompleted});
                 newHabitEntries[weekday] = newHabitEntry;
             }
         }
@@ -251,7 +251,17 @@ const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,
         }
         const selectedHabitEntries = habitEntriesCluster.habitEntries;
         const newEntries:{[weekday:number]:HabitEntryInterface|null|boolean} = populateWeekWithHabitEntries(req.body,utcWeekStartMidDay,false,selectedHabitEntries);
-        // Delete 
+         // Delete old entries
+        try {
+            await Habit.updateMany(
+                {userId:userId},
+                {$pull:{habitEntries:{habitId:_id,date:{$gte:new Date(clientWeekStart),$lt:clientNextWeekStart}}}},
+                {"multi": true}
+            )
+        } catch (error) {
+            return res.status(500).send("Failed to update habit.");
+        }
+        // Push new entries
         const completeEntries = Object.values(newEntries).filter((entry:HabitEntryInterface|null|boolean) => {
             if(typeof(entry) === 'object') {
                 if(entry?.status === 'Complete') {

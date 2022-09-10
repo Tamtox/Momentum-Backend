@@ -97,7 +97,8 @@ const signup:RequestHandler = async (req,res,next) => {
     const newUserSchedule = new Schedule({
         userId:newUser.id,
         user:email,
-        schedulenList:[]
+        scheduleList:[],
+        scheduleEntries:[]
     });
     try {
         await newUserTodo.save();

@@ -36,7 +36,7 @@ const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
         await Goal.findOneAndUpdate({userId:userId},{$push:{goalList:newGoalItem}});
         // Add schedule item
         if(targetDate) {
-            scheduleItem = await addPairedScheduleItem(title,null,'goal',targetDate,alarmUsed,creationUTCOffset,newGoalItem._id,userId);
+            scheduleItem = await addPairedScheduleItem(null,targetDate,title,'goal',alarmUsed,creationUTCOffset,newGoalItem._id,userId);
             if(scheduleItem === false) {
                 return res.status(500).send('Failed to add new goal schedule item.');
             }
@@ -67,7 +67,7 @@ const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
         );
          // Update schedule item
         if(targetDate) {
-            scheduleItem = updatePairedScheduleItem(title,null,targetDate,alarmUsed,isArchived,_id,userId);
+            scheduleItem = updatePairedScheduleItem(null,targetDate,title,alarmUsed,isArchived,_id,userId);
             if(!scheduleItem) {
                 return res.status(500).send('Failed to update goal schedule item.');
             }
