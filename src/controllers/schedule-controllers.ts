@@ -4,6 +4,8 @@ import { HabitsListItemInterface } from "../models/habit";
 const {Schedule,ScheduleItem} = require('../models/schedule');
 const {Habit} = require('../models/habit');
 
+
+// Generate new schedule items for habits
 const generateHabitSchedule = (habitList:HabitsListItemInterface[],schedule:ScheduleItemInterface[],date:number) => {
     const habitSchedule:ScheduleItemInterface[] = schedule.filter((scheduleItem:ScheduleItemInterface)=>scheduleItem.parentType === 'habit');
     const newScheduleItems:ScheduleItemInterface[] = [];
@@ -51,31 +53,20 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Retreives schedule for selected day
     try{
         scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$and:[{$gte:["$$item.date",clientDayStart]},{$lt:["$$item.date",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
-        habitListCluster = await Habit.findOne({userId:userId},{habitList:{$filter:{input:"$habitList",as:"item",cond:{$and:[{$gte:["$$item.creationDate",utcDayStartMidDay]},{$lt:["$$item.goalTargetDate",utcDayStartMidDay]},{$eq:["$$item.isArchived",false]}]}}}});
+        habitListCluster = await Habit.findOne({userId:userId},{habitList:{$filter:{input:"$habitList",as:"item",cond:{$and:[{$gte:["$$item.creationDate",clientDayStart]},{$lt:["$$item.goalTargetDate",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
     } catch(error) {
-        res.status(500).send("Failed to retrieve schedule.")
+        res.status(500).send("Failed to retrieve schedule.");
     }   
-    // Generate new habit schedule entries
+    // Generate new habit schedule entries and save them 
     const habitSchedule = generateHabitSchedule(habitListCluster.habitList,scheduleCluster.scheduleList,utcDayStartMidDay);
-    console.log(habitSchedule);
-    const scheduleList = scheduleCluster.scheduleList;
+    try {
+        await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:habitSchedule}}});
+    } catch (error) {
+        res.status(500).send("Failed to retrieve schedule.");
+    }
+    const scheduleList:ScheduleItemInterface[] = scheduleCluster.scheduleList.concat(habitSchedule);
     res.status(200).json({scheduleList});
 }
-
-// const getScheduleItem:RequestHandler<{userId:string}> = async (req,res,next) => {
-//     const userId = req.params.userId;
-//     const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as ScheduleItemInterface;
-//     const {clientDayStart,clientNextDayStart} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
-//     let scheduleCluster;
-//     // Retreives schedule for selected day
-//     try{
-//         scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$and:[{$gte:["$$item.date",clientDayStart]},{$lt:["$$item.date",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
-//     } catch(error) {
-//         res.status(500).send("Failed to retrieve schedule.")
-//     }   
-//     const scheduleList = scheduleCluster.scheduleList[0];
-//     res.status(200).json({scheduleList});
-// }
 
 const addPairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,parentType:string,alarmUsed:boolean,creationUTCOffset:number,_id:string,userId:string) => {
     const {utcDayStartMidDay} = getDate(new Date(targetDate).getTime(),creationUTCOffset);

@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build":"tsc -p . -w",
-    "start": "nodemon dist/app.js"
+    "build": "tsc",
+    "prestart": "yarn run build",
+    "start": "nodemon dist/app.js",
+    "dev": "tsc -w && dist/app.js"
   },
   "author": "Tamtox",
   "license": "ISC",
