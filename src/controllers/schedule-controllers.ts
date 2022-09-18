@@ -4,20 +4,19 @@ import { HabitsListItemInterface } from "../models/habit";
 const {Schedule,ScheduleItem} = require('../models/schedule');
 const {Habit} = require('../models/habit');
 
-
 // Generate new schedule items for habits
 const generateHabitSchedule = (habitList:HabitsListItemInterface[],schedule:ScheduleItemInterface[],date:number) => {
     const habitSchedule:ScheduleItemInterface[] = schedule.filter((scheduleItem:ScheduleItemInterface)=>scheduleItem.parentType === 'habit');
     const newScheduleItems:ScheduleItemInterface[] = [];
-    habitList.forEach((habitItem:HabitsListItemInterface) => {
-        const habitIndex:number = habitSchedule.findIndex((item:ScheduleItemInterface) => item.parentId === habitItem._id);
+    habitList.forEach((habitItem:any) => {
+        const habitExists:ScheduleItemInterface|undefined = habitSchedule.find((item:ScheduleItemInterface) => item.parentId === habitItem.id);
         // Check if habit weekday is active
         const isWeekday = habitItem.weekdays[new Date(date).getDay()];
         // Check if goal target date reached
         const habitGoalTargetReached:boolean = habitItem.goalTargetDate ? new Date(date).getTime() > new Date(habitItem.goalTargetDate).getTime() : false;
         // Chekck habit creation date
         const afterCreationDate:boolean = new Date(date).getTime() > new Date(habitItem.creationDate).getTime();
-        if(habitIndex < 0 && isWeekday && !habitGoalTargetReached && afterCreationDate) {
+        if(!habitExists && isWeekday && !habitGoalTargetReached && afterCreationDate) {
             const newScheduleItem:ScheduleItemInterface = new ScheduleItem({
                 date:new Date(date),
                 time:habitItem.time,
@@ -53,11 +52,12 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Retreives schedule for selected day
     try{
         scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$and:[{$gte:["$$item.date",clientDayStart]},{$lt:["$$item.date",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
-        habitListCluster = await Habit.findOne({userId:userId},{habitList:{$filter:{input:"$habitList",as:"item",cond:{$and:[{$gte:["$$item.creationDate",clientDayStart]},{$lt:["$$item.goalTargetDate",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
+        habitListCluster = await Habit.findOne({userId:userId},{habitList:{$filter:{input:"$habitList",as:"item",cond:{$and:[{$lt:["$$item.creationDate",clientDayStart]},{$lt:["$$item.goalTargetDate",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
     } catch(error) {
         res.status(500).send("Failed to retrieve schedule.");
     }   
     // Generate new habit schedule entries and save them 
+    console.log(habitListCluster.habitList)
     const habitSchedule = generateHabitSchedule(habitListCluster.habitList,scheduleCluster.scheduleList,utcDayStartMidDay);
     try {
         await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:habitSchedule}}});
@@ -68,7 +68,7 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     res.status(200).json({scheduleList});
 }
 
-const addPairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,parentType:string,alarmUsed:boolean,creationUTCOffset:number,_id:string,userId:string) => {
+const createPairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,parentType:string,alarmUsed:boolean,creationUTCOffset:number,_id:string,userId:string) => {
     const {utcDayStartMidDay} = getDate(new Date(targetDate).getTime(),creationUTCOffset);
     let scheduleItem:any =  new ScheduleItem({
         date:utcDayStartMidDay,
@@ -82,11 +82,6 @@ const addPairedScheduleItem = async (time:string|null,targetDate:string,parentTi
         utcOffset:creationUTCOffset,
         isArchived:false,
     })
-    try {
-        await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
-    } catch (error) {
-        return false;
-    }
     return scheduleItem;
 }
 
@@ -135,4 +130,4 @@ const deletePairedScheduleItem = async (_id:string,userId:string) => {
     return true;
 }
 
-export { getSchedule, addPairedScheduleItem, updatePairedScheduleItem, updateScheduleItemStatus, deletePairedScheduleItem };
+export { getSchedule, createPairedScheduleItem, updatePairedScheduleItem, updateScheduleItemStatus, deletePairedScheduleItem };
