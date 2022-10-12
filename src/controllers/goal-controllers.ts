@@ -1,8 +1,7 @@
 import { RequestHandler } from "express";
 import { GoalItemInterface } from "../models/goal";
 const {Goal,GoalItem,GoalItemInterface} = require('../models/goal');
-const {Schedule} = require('../models/schedule');
-const {createPairedScheduleItem,updatePairedScheduleItem,deletePairedScheduleItem} = require('./schedule-controllers');
+const {addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem} = require("./schedule-controllers");
 
 const getGoals:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
@@ -32,21 +31,23 @@ const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     const {title,creationDate,targetDate,status,creationUTCOffset,alarmUsed} = req.body as GoalItemInterface;
     const newGoalItem = new GoalItem({title,creationDate,targetDate,status,creationUTCOffset,alarmUsed});
-    const scheduleItem = createPairedScheduleItem(null,targetDate,title,'goal',alarmUsed,creationUTCOffset,newGoalItem._id,userId);
+    let scheduleItem;
     try {
         await Goal.findOneAndUpdate({userId:userId},{$push:{goalList:newGoalItem}});
-        targetDate && await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+        // Add paired schedule item
+        scheduleItem = addPairedScheduleItem(null,targetDate,title,'goal',alarmUsed,creationUTCOffset,newGoalItem._id,userId);
+        if (!scheduleItem) {
+            throw new Error("Failed");
+        }
     } catch (error) {
         return res.status(500).send('Failed to add new goal.');
     }
-    // Returns an object
-    res.status(200).json({newGoalItem,scheduleItem});
+    res.status(200).json({goalId:newGoalItem._id,scheduleId:scheduleItem._id});
 }
 
 const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
     const {title,targetDate,status,dateCompleted,habitId,_id,isArchived,alarmUsed} = req.body as GoalItemInterface;
-    let scheduleItem = null;
     try {
         await Goal.findOneAndUpdate(
             {userId:userId,"goalList._id":_id},
@@ -60,15 +61,6 @@ const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "goalList.$.alarmUsed":alarmUsed,
             }}
         );
-         // Update schedule item
-        if(targetDate) {
-            scheduleItem = updatePairedScheduleItem(null,targetDate,title,alarmUsed,isArchived,_id,userId);
-            if(!scheduleItem) {
-                return res.status(500).send('Failed to update goal schedule item.');
-            }
-        } else {
-            await Schedule.updateMany({userId:userId},{$pull:{scheduleList:{"parentId":_id}}},{"multi": true});
-        }
     } catch (error) {
         return res.status(500).send('Failed to update goal.');
     }
@@ -80,7 +72,6 @@ const deleteGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const {_id} = req.body as {_id:string}
     try {
         await Goal.findOneAndUpdate({userId:userId},{$pull:{goalList:{"_id":_id}}});
-        await Schedule.updateMany({userId:userId},{$pull:{scheduleList:{"parentId":_id}}},{"multi": true});
     } catch (error) {
         return res.status(500).send("Failed to delete goal.");
     }

@@ -1,12 +1,14 @@
 import { RequestHandler } from "express";
 import { ScheduleItemInterface } from "../models/schedule";
 import { HabitsListItemInterface } from "../models/habit";
+import { TodoItemInterface } from "../models/todo";
+import { GoalItemInterface } from "../models/goal";
 const {Schedule,ScheduleItem} = require('../models/schedule');
 const {Habit} = require('../models/habit');
 
 // Generate new schedule items for habits
-const generateHabitSchedule = (habitList:HabitsListItemInterface[],schedule:ScheduleItemInterface[],date:number) => {
-    const habitSchedule:ScheduleItemInterface[] = schedule.filter((scheduleItem:ScheduleItemInterface)=>scheduleItem.parentType === 'habit');
+const generateHabitSchedule = (habitList:HabitsListItemInterface[],existingSchedule:ScheduleItemInterface[],date:number) => {
+    const habitSchedule:ScheduleItemInterface[] = existingSchedule.filter((scheduleItem:ScheduleItemInterface)=>scheduleItem.parentType === 'habit');
     const newScheduleItems:ScheduleItemInterface[] = [];
     habitList.forEach((habitItem:any) => {
         const habitExists:ScheduleItemInterface|undefined = habitSchedule.find((item:ScheduleItemInterface) => item.parentId === habitItem.id);
@@ -14,7 +16,7 @@ const generateHabitSchedule = (habitList:HabitsListItemInterface[],schedule:Sche
         const isWeekday = habitItem.weekdays[new Date(date).getDay()];
         // Check if goal target date reached
         const habitGoalTargetReached:boolean = habitItem.goalTargetDate ? new Date(date).getTime() > new Date(habitItem.goalTargetDate).getTime() : false;
-        // Chekck habit creation date
+        // Check habit creation date
         const afterCreationDate:boolean = new Date(date).getTime() > new Date(habitItem.creationDate).getTime();
         if(!habitExists && isWeekday && !habitGoalTargetReached && afterCreationDate) {
             const newScheduleItem:ScheduleItemInterface = new ScheduleItem({
@@ -57,7 +59,6 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
         res.status(500).send("Failed to retrieve schedule.");
     }   
     // Generate new habit schedule entries and save them 
-    console.log(habitListCluster.habitList)
     const habitSchedule = generateHabitSchedule(habitListCluster.habitList,scheduleCluster.scheduleList,utcDayStartMidDay);
     try {
         await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:habitSchedule}}});
@@ -68,27 +69,34 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     res.status(200).json({scheduleList});
 }
 
-const createPairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,parentType:string,alarmUsed:boolean,creationUTCOffset:number,_id:string,userId:string) => {
-    const {utcDayStartMidDay} = getDate(new Date(targetDate).getTime(),creationUTCOffset);
-    let scheduleItem:any =  new ScheduleItem({
-        date:utcDayStartMidDay,
-        time:time,
-        parentId:_id,
-        parentTitle:parentTitle,
-        parentType:parentType,
-        status:"Pending",
-        dateCompleted:null,
-        alarmUsed:alarmUsed,
-        utcOffset:creationUTCOffset,
-        isArchived:false,
-    })
-    return scheduleItem;
+const addPairedScheduleItem = async (time:string|null,targetDate:string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
+    if (parentType === "habit") {
+        
+    }
+    if (targetDate) {
+        const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
+        let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
+        try{
+            await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+        } catch(error) {
+            return false;
+        }   
+        return scheduleItem;
+    }
 }
 
-const updatePairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,alarmUsed:boolean,isArchived:boolean,_id:string,userId:string) => {
+const updatePairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,alarmUsed:boolean,isArchived:boolean,parentId:string,userId:string) => {
+    // Check old schedule item
+    let scheduleCluster;
+    try {
+        scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$elemMatch:{"parentId":parentId}}});
+    } catch (error) {
+        return false;
+    }
+    const selectedScheduleItem:ScheduleItemInterface = scheduleCluster.scheduleList[0]; 
     try {
         await Schedule.findOneAndUpdate(
-            {userId:userId,"scheduleList.parentId":_id},
+            {userId:userId,"scheduleList.parentId":parentId},
             {$set:{
                 "scheduleList.$.date":targetDate,
                 "scheduleList.$.time":time,
@@ -121,13 +129,13 @@ const updateScheduleItemStatus:RequestHandler<{userId:string}> = async (req,res,
     res.status(200).send("Successfully updated schedule");
 }
 
-const deletePairedScheduleItem = async (_id:string,userId:string) => {
-    try {
-        await Schedule.updateMany({userId:userId},{$pull:{scheduleList:{"parentId":_id}}},{"multi": true});
-    } catch (error) {
+const deletePairedScheduleItem = async (userId:string,parentId:string) => {
+    try{
+        await Schedule.updateMany({userId:userId},{$pull:{scheduleList:{"parentId":parentId}}},{"multi": true});
+    } catch(error) {
         return false;
-    }
+    }   
     return true;
 }
 
-export { getSchedule, createPairedScheduleItem, updatePairedScheduleItem, updateScheduleItemStatus, deletePairedScheduleItem };
+export {getSchedule,addPairedScheduleItem,updatePairedScheduleItem,updateScheduleItemStatus,deletePairedScheduleItem};

@@ -1,10 +1,16 @@
 import express from "express";
 const router = express.Router();
 const {authCheck} = require('../middleware/auth-check');
-const {getSchedule,updateScheduleItemStatus} = require('../controllers/schedule-controllers');
+const {getSchedule,addScheduleItem,updateScheduleItem,updateScheduleItemStatus,deleteScheduleItem} = require('../controllers/schedule-controllers');
 
 router.post('/getSchedule',authCheck,getSchedule);
 
+// router.post('/addScheduleItem',authCheck,addScheduleItem);
+
+// router.patch('/updateScheduleItem',authCheck,updateScheduleItem);
+
 router.patch('/updateScheduleItemStatus',authCheck,updateScheduleItemStatus);
 
-module.exports = router 
+// router.post('/deleteScheduleItem',authCheck,deleteScheduleItem);
+
+module.exports = router;
