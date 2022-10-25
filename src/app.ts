@@ -47,7 +47,7 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
 
 
 mongoose
-.connect(MONGO_URIATLAS, {
+.connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })

@@ -62,7 +62,7 @@ const signup:RequestHandler = async (req,res,next) => {
     }
     // Confirmation Code for verification
     let verificationCode = ''
-    for(let i=0;i<7;i++) {
+    for(let i = 0; i < 7; i++) {
         verificationCode += Math.floor(Math.random() * 10);
     }
     // Create new user in database
@@ -185,36 +185,36 @@ const verifyUser:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const getUserData:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    let existingUser
+    let existingUser;
     try{
         existingUser = await User.findOne({userId:userId});
     } catch(error) {
-        return res.status(500).send('Failed to retrieve data. Please try again later.')
+        return res.status(500).send('Failed to retrieve data. Please try again later.');
     }
     if(existingUser) {
         res.status(200).send({emailConfirmationStatus:existingUser.emailConfirmationStatus,email:existingUser.email,name:existingUser.name})
     } else {
-        return res.status(404).send('User does not exist!')
+        return res.status(404).send('User does not exist!');
     }
 }
 
 const sendVerificationLetter:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     const {email} = req.body as {email:string}
-    let existingUser
+    let existingUser;
     try{
         existingUser = await User.findOne({userId:userId});
     } catch(error) {
-        return res.status(500).send('Failed to retrieve data. Please try again later.')
+        return res.status(500).send('Failed to retrieve data. Please try again later.');
     }
-    const verificationCode = existingUser.verificationCode
+    const verificationCode = existingUser.verificationCode;
      // Send confirmation letter
     try{
-        await sendVerificationMail(email,verificationCode,true)
+        await sendVerificationMail(email,verificationCode,true);
     } catch(error) {
-        return res.status(500).send('Failed to send verification letter. Please try again later.')
+        return res.status(500).send('Failed to send verification letter. Please try again later.');
     }   
-    res.status(200).json({message:"Verification code was sent to provided email"})
+    res.status(200).json({message:"Verification code was sent to provided email"});
 }
 
 const changePassword:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -279,7 +279,7 @@ const resetPassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Generate and hash temporary password
     let tempPassword = '';
     const symbols = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ12345678900987654321,._!?_+-="; 
-    for(let i=0;i<10;i++) {
+    for(let i = 0; i < 10; i++) {
         tempPassword += symbols[Math.floor(Math.random() * symbols.length)];
     }
     let hashedPassword

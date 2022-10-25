@@ -5,6 +5,7 @@ const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
 // Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
 const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:HabitEntryInterface[]) => {
     const newHabitEntries:{[weekday:number]:HabitEntryInterface|null|boolean} = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+    const newScheduleItems = [];
     const habitId = habitItem._id;
     for (let currentTime = startTime; currentTime < endTime; currentTime += 86400000) {
         const date = new Date(currentTime).setHours(12,0,0,0);
@@ -53,8 +54,8 @@ const attachEntriesToItems = (habitList:HabitsListItemInterface[],habitEntries:H
         const newHabitEntries = createHabitEntries(habitListItem,startTime,endTime);
         habitListItem._doc.entries = newHabitEntries;
         const habitId = habitListItem.id;
-        // Insert actual entries 
-        for(let i = 0; i < habitEntriesCpy.length; i++) {
+        // Insert existing entries 
+        for (let i = 0; i < habitEntriesCpy.length; i++) {
             if(habitId === habitEntriesCpy[i].habitId) {
                 const weekday = new Date(habitEntriesCpy[i].date).getDay();
                 habitListItem._doc.entries[weekday] =  habitEntriesCpy[i];
@@ -66,7 +67,6 @@ const attachEntriesToItems = (habitList:HabitsListItemInterface[],habitEntries:H
     })
     return newhabitList;
 }
-
 
 const getWeekDates = (clientWeekStartTime:number,timezoneOffset:number) => {
     const utcWeekStartMidDay = new Date(clientWeekStartTime + timezoneOffset * -60000).setHours(12,0,0,0);
@@ -176,11 +176,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
         const newHabitEntries = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {
-            await Habit.updateMany(
-                {userId:userId},
-                {$pull:{habitEntries:{habitId:_id,date:{$gte:clientWeekStart,$lt:clientNextWeekStart}}}},
-                {"multi": true}
-            )
+            await Habit.updateMany({userId:userId},{$pull:{habitEntries:{habitId:_id,date:{$gte:clientWeekStart,$lt:clientNextWeekStart}}}},{"multi": true});
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
@@ -253,11 +249,7 @@ const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,
         const newEntries = createHabitEntries(req.body,utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {
-            await Habit.updateMany(
-                {userId:userId},
-                {$pull:{habitEntries:{habitId:_id,date:{$gte:new Date(clientWeekStart),$lt:clientNextWeekStart}}}},
-                {"multi": true}
-            )
+            await Habit.updateMany({userId:userId},{$pull:{habitEntries:{habitId:_id,date:{$gte:new Date(clientWeekStart),$lt:clientNextWeekStart}}}},{"multi": true});
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
