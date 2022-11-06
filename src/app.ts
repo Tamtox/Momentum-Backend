@@ -45,9 +45,8 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     res.json({message:error.message||'Unknown error'});
 })
 
-
 mongoose
-.connect(MONGO_URIATLAS, {
+.connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })

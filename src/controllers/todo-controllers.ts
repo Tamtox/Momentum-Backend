@@ -48,7 +48,7 @@ const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {title,description,targetDate,targetTime,status,dateCompleted,_id,isArchived,alarmUsed} = req.body as TodoItemInterface;
+    const {title,description,targetDate,targetTime,status,dateCompleted,_id,isArchived,alarmUsed,scheduleAction} = req.body as TodoItemInterface;
     try {
         await Todo.findOneAndUpdate(
             {userId:userId,"todoList._id":_id},
@@ -66,6 +66,18 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send('Failed to update todo.');
     }
+     // Check if schedule item needs to be added, deleted or updated  
+    if (scheduleAction === "create") {
+        const {targetTime,targetDate,title,alarmUsed,creationUTCOffset} = newTodo;
+        if (targetDate) {
+            const scheduleItem = await addPairedScheduleItem(targetTime,targetDate,title,'todo',alarmUsed,creationUTCOffset,_id,userId);
+        }
+    } else if (scheduleAction === "update") {
+        updatePairedScheduleItem(targetTime,targetDate,title,alarmUsed,isArchived,_id,userId);
+    } else if (scheduleAction === "delete") {
+        let deleteRes =  await deletePairedScheduleItem(userId,_id);
+    }
+    if (scheduleAction)
     res.status(200).send("Successfully updated todo")
 }
 
