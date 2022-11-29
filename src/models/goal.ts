@@ -11,6 +11,7 @@ export interface GoalItemInterface {
     isArchived:boolean,
     creationUTCOffset:string,
     alarmUsed:boolean,
+    scheduleAction?:string|null,
     _id:string
 }
 const goalItemSchema = new mongoose.Schema<GoalItemInterface>({

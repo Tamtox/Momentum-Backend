@@ -38,7 +38,7 @@ const addNewTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     try {
         await Todo.findOneAndUpdate({userId:userId},{$push:{todoList:newTodoItem}});
         // Add paired schedule item
-        scheduleItem = addPairedScheduleItem(targetTime,targetDate,title,'todo',alarmUsed,creationUTCOffset,newTodoItem._id,userId);
+        scheduleItem = await addPairedScheduleItem(targetTime,targetDate,title,'todo',alarmUsed,creationUTCOffset,newTodoItem._id,userId);
         if (!scheduleItem) {
             throw new Error("Failed");
         }
