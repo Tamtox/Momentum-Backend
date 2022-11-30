@@ -72,16 +72,19 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
 const addPairedScheduleItem = async (time:string|null,targetDate:string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
     if (parentType === "habit") {
         
-    }
-    if (targetDate) {
-        const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
-        let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
-        try{
-            await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
-        } catch(error) {
-            return false;
-        }   
-        return scheduleItem;
+    } else {
+        if (targetDate) {
+            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
+            let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
+            try{
+                await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+            } catch(error) {
+                return false;
+            }   
+            return scheduleItem;
+        } else {
+            return true
+        }
     }
 }
 
