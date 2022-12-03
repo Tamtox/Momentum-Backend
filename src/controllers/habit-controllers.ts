@@ -1,10 +1,14 @@
 import { RequestHandler } from "express";
 import { HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
+import { ScheduleItemInterface } from "../models/schedule";
+const {Schedule,ScheduleItem} = require('../models/schedule');
 const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
+const {addPairedScheduleItem,updatePairedScheduleItem,deletePairedScheduleItem} = require("./schedule-controllers");
 
 // Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
 const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:HabitEntryInterface[]) => {
     const newHabitEntries:{[weekday:number]:HabitEntryInterface|null|boolean} = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
+    const newHabitSchedule:ScheduleItemInterface[] = []
     const habitId = habitItem._id;
     for (let currentTime = startTime; currentTime < endTime; currentTime += 86400000) {
         const date = new Date(currentTime).setHours(12,0,0,0);
@@ -16,15 +20,9 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
         const habitCreationTime = new Date(habitItem.creationDate).getTime() + habitItem.creationUTCOffset * - 60000;
         const habitCreationWeekday = new Date(habitCreationTime).getDay();
         const habitCreationDatesWeekStart = new Date(habitCreationTime).setHours(12,0,0,0) + 86400000 * (habitCreationWeekday ? 1 - habitCreationWeekday : -6);
-        if(habitCreationDatesWeekStart > weekStartTime + 86400000 * 7 - 1 && !populateBeforeCreationDate) {
-            break;
-        }
+        if(habitCreationDatesWeekStart > weekStartTime + 86400000 * 7 - 1 && !populateBeforeCreationDate) break;
         // Stop creating entries if target paired goals date has been reached
-        if(habitItem.goalTargetDate) {
-            if(date > new Date(habitItem.goalTargetDate).getTime()) {
-                break;
-            }
-        }
+        if(habitItem.goalTargetDate && date > new Date(habitItem.goalTargetDate).getTime()) break;
         // Check if existing entry status is complete
         if(selectedHabitEntries) {
             selectedHabitEntries.forEach((entry:HabitEntryInterface)=>{
@@ -40,6 +38,8 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
                 const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,isArchived:habitItem.isArchived,dateCompleted});
                 newHabitEntries[weekday] = newHabitEntry;
             }
+            const {time,_id:parentId,title:parentTitle,alarmUsed,creationUTCOffset:utcOffset} = habitItem;
+            const newHabitScheduleItem = new ScheduleItem({date,time,parentId,parentTitle,parentType:'habit',alarmUsed,utcOffset});
         }
     }
     return newHabitEntries;
@@ -66,7 +66,6 @@ const attachEntriesToItems = (habitList:HabitsListItemInterface[],habitEntries:H
     })
     return newhabitList;
 }
-
 
 const getWeekDates = (clientWeekStartTime:number,timezoneOffset:number) => {
     const utcWeekStartMidDay = new Date(clientWeekStartTime + timezoneOffset * -60000).setHours(12,0,0,0);
@@ -108,8 +107,11 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const {title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay,utcNextWeekStartMidDay} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
     let newHabit:HabitsListItemInterface = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
+    let scheduleItems;
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
+        // Add paired schedule items
+        scheduleItems = await addPairedScheduleItem(time,goalTargetDate,title,'habit',alarmUsed,creationUTCOffset,newHabit._id,userId);
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
@@ -286,6 +288,11 @@ const deleteHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     try {
         await Habit.findOneAndUpdate({userId:userId},{$pull:{habitList:{"_id":_id}}});
         await Habit.updateMany({userId:userId},{$pull:{habitEntries:{"habitId":_id}}},{"multi": true});   
+        // Delete paired schedule item
+        const scheduleRes:boolean = await deletePairedScheduleItem(userId,_id);
+        if (!scheduleRes) {
+            throw new Error("Failed");
+        }
     } catch (error) {
         return res.status(500).send("Failed to delete habit.");
     }

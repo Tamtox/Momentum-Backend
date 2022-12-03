@@ -100,7 +100,7 @@ const deleteTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     const {_id} = req.body as {_id:string};
     try {
         await Todo.findOneAndUpdate({userId:userId},{$pull:{todoList:{"_id":_id}}},);
-        // Delete paired shcedule item
+        // Delete paired schedule item
         const scheduleRes:boolean = await deletePairedScheduleItem(userId,_id);
         if (!scheduleRes) {
             throw new Error("Failed");

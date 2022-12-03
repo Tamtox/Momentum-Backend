@@ -88,6 +88,25 @@ const addPairedScheduleItem = async (time:string|null,targetDate:string|null,par
     }
 }
 
+const addPairedScheduleItems = async (time:string|null,targetDate:string|null,creationDate:string,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
+    if (parentType === "habit") {
+        
+    } else {
+        if (targetDate) {
+            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
+            let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
+            try{
+                await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+            } catch(error) {
+                return false;
+            }   
+            return scheduleItem;
+        } else {
+            return true
+        }
+    }
+}
+
 const updatePairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,alarmUsed:boolean,isArchived:boolean,parentId:string,userId:string) => {
     // Check old schedule item
     let scheduleCluster;
