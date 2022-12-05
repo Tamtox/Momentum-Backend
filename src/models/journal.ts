@@ -25,5 +25,4 @@ const journalSchema = new mongoose.Schema<Journal>({
 const JournalEntry = mongoose.model<JournalEntry>('Journal Entry',journalEntrySchema);
 const Journal = mongoose.model<Journal>('Journal',journalSchema);
 
-exports.Journal = Journal;
-exports.JournalEntry = JournalEntry;
+export {Journal,JournalEntry}

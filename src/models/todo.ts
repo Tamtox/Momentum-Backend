@@ -11,7 +11,6 @@ interface TodoItemInterface {
     isArchived:boolean,
     creationUTCOffset:number,
     alarmUsed:boolean,
-    scheduleAction?:string|null,
     _id:string
 }
 const todoItemSchema = new mongoose.Schema<TodoItemInterface>({

@@ -1,7 +1,7 @@
 import express,{ Request,Response,NextFunction } from "express";
 import 'dotenv/config'
 process.env.TZ = 'Etc/Universal';
-import mongoose from "mongoose";
+const mongoose = require("mongoose")
 const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
 const app = express();
 
@@ -45,7 +45,7 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
 })
 
 // Mongodb connection
-mongoose.connect(`${MONGO_URI}`, { useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true } ).then(() => {
+mongoose.connect(`${MONGO_URI}`, { useNewUrlParser: true, useUnifiedTopology: true } ).then(() => {
     console.log("Successfully connected to database");
     app.listen(PORT);
     console.log("Server Up")

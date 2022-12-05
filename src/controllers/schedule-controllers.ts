@@ -69,44 +69,36 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
 }
 
 const addPairedScheduleItem = async (time:string|null,targetDate:Date|string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
-    if (parentType === "habit") {
-        
+    if (targetDate) {
+        const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),Number(utcOffset));
+        let scheduleItem:ScheduleItemInterface =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
+        try{
+            await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+        } catch(error) {
+            return false;
+        }   
+        return scheduleItem;
     } else {
-        if (targetDate) {
-            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),Number(utcOffset));
-            let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
-            try{
-                await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
-            } catch(error) {
-                return false;
-            }   
-            return scheduleItem;
-        } else {
-            return true
-        }
+        return true
     }
 }
 
 const addPairedScheduleItems = async (time:string|null,targetDate:string|null,creationDate:string,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
-    if (parentType === "habit") {
-        
+    if (targetDate) {
+        const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
+        let scheduleItem:ScheduleItemInterface =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
+        try{
+            await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+        } catch(error) {
+            return false;
+        }   
+        return scheduleItem;
     } else {
-        if (targetDate) {
-            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
-            let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
-            try{
-                await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
-            } catch(error) {
-                return false;
-            }   
-            return scheduleItem;
-        } else {
-            return true
-        }
+        return true
     }
 }
 
-const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string,parentTitle:string,alarmUsed:boolean,isArchived:boolean,parentId:string,userId:string) => {
+const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,isArchived:boolean,parentId:string,userId:string) => {
     // Check old schedule item
     let scheduleCluster;
     try {
@@ -114,22 +106,51 @@ const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string,
     } catch (error) {
         return false;
     }
-    const selectedScheduleItem:ScheduleItemInterface = scheduleCluster!.scheduleList[0]; 
-    try {
-        await Schedule.findOneAndUpdate(
-            {userId:userId,"scheduleList.parentId":parentId},
-            {$set:{
-                "scheduleList.$.date":targetDate,
-                "scheduleList.$.time":time,
-                "scheduleList.$.parentTitle":parentTitle,
-                "scheduleList.$.alarmUsed":alarmUsed,
-                "scheduleList.$.isArchived":isArchived,
-            }}
-        )
-    } catch (error) {
-        return false;
+    const selectedScheduleItem:ScheduleItemInterface | undefined = scheduleCluster!.scheduleList[0]; 
+    let scheduleItemResponse:ScheduleItemInterface|string
+    // Add new schedule item if there was no old item
+    if (!selectedScheduleItem) {
+        if (targetDate) {
+            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
+            let scheduleItem:ScheduleItemInterface =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
+            try{
+                await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
+            } catch(error) {
+                return false;
+            }   
+            return scheduleItem;
+        } else {
+            return true
+        }
+    } else {
+        // Delete schedule item if no target date
+        if (!targetDate) {
+            try{
+                await Schedule.updateMany({userId:userId},{$pull:{scheduleList:{"parentId":parentId}}},{"multi": true});
+            } catch(error) {
+                return false;
+            }   
+            return true;
+        } 
+        // Update schedule item
+        else {
+            try {
+                await Schedule.findOneAndUpdate(
+                    {userId:userId,"scheduleList.parentId":parentId},
+                    {$set:{
+                        "scheduleList.$.date":targetDate,
+                        "scheduleList.$.time":time,
+                        "scheduleList.$.parentTitle":parentTitle,
+                        "scheduleList.$.alarmUsed":alarmUsed,
+                        "scheduleList.$.isArchived":isArchived,
+                    }}
+                )
+            } catch (error) {
+                return false;
+            }
+            return true
+        }
     }
-    return true;
 }
 
 const updateScheduleItemStatus:RequestHandler<{userId:string}> = async (req,res,next) => {

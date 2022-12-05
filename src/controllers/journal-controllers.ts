@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-const {Journal,JournalEntry} = require('../models/journal');
+import { Journal,JournalEntry } from "../models/journal"
 
 // Get day start and end of selected day
 const getDate = (clientDayStartTime:number,timezoneOffset:number) => {
@@ -19,7 +19,7 @@ const getJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => 
     } catch (error) {
         return res.status(500).send("Failed to retrieve journal data.")
     }
-    res.status(200).send(journalCluster.journalEntries)
+    res.status(200).send(journalCluster!.journalEntries)
 }
 
 const updateJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -32,7 +32,7 @@ const updateJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) 
     } catch (error) {
         return res.status(500).send("Failed to retrieve journal data.")
     }
-    if(journalCluster.journalEntries.length < 1) {
+    if(journalCluster!.journalEntries.length < 1) {
         const newJournalEntry = new JournalEntry({date:utcDayStartMidDay,journalEntry});
         try {
             await Journal.findOneAndUpdate({userId:userId},{$push:{journalEntries:newJournalEntry}},);
