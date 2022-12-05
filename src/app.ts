@@ -1,8 +1,7 @@
 import express,{ Request,Response,NextFunction } from "express";
-import * as dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config'
 process.env.TZ = 'Etc/Universal';
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
 const app = express();
 
@@ -45,17 +44,12 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     res.json({message:error.message||'Unknown error'});
 })
 
-mongoose
-.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => {
+// Mongodb connection
+mongoose.connect(`${MONGO_URI}`, { useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true } ).then(() => {
     console.log("Successfully connected to database");
     app.listen(PORT);
     console.log("Server Up")
-})
-.catch((error:Error) => {
+}).catch((error:Error) => {
     console.log("Database connection failed. exiting now...");
     console.error(error);
 });

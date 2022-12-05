@@ -9,7 +9,7 @@ export interface GoalItemInterface {
     dateCompleted:Date | null, /* Date format : Date.toISOString() */
     habitId:string | null,
     isArchived:boolean,
-    creationUTCOffset:string,
+    creationUTCOffset:number,
     alarmUsed:boolean,
     scheduleAction?:string|null,
     _id:string
@@ -23,7 +23,7 @@ const goalItemSchema = new mongoose.Schema<GoalItemInterface>({
     dateCompleted:{type:Date,default:null},
     habitId:{type:String,default:null},
     isArchived:{type:Boolean,required:true,default:false},
-    creationUTCOffset:{type:String,required:true}, 
+    creationUTCOffset:{type:Number,required:true}, 
     alarmUsed:{type:Boolean,required:true},
 })
 

@@ -1,10 +1,9 @@
 import { RequestHandler } from "express";
-import { ScheduleItemInterface } from "../models/schedule";
+import { Schedule,ScheduleItem,ScheduleItemInterface } from "../models/schedule";
 import { HabitsListItemInterface } from "../models/habit";
 import { TodoItemInterface } from "../models/todo";
 import { GoalItemInterface } from "../models/goal";
-const {Schedule,ScheduleItem} = require('../models/schedule');
-const {Habit} = require('../models/habit');
+import { Habit } from "../models/habit";
 
 // Generate new schedule items for habits
 const generateHabitSchedule = (habitList:HabitsListItemInterface[],existingSchedule:ScheduleItemInterface[],date:number) => {
@@ -49,8 +48,8 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
     const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as ScheduleItemInterface;
     const {utcDayStartMidDay,clientDayStart,clientNextDayStart} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
-    let scheduleCluster;
-    let habitListCluster;
+    let scheduleCluster:any;
+    let habitListCluster:any;
     // Retreives schedule for selected day
     try{
         scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$and:[{$gte:["$$item.date",clientDayStart]},{$lt:["$$item.date",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
@@ -59,22 +58,22 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
         res.status(500).send("Failed to retrieve schedule.");
     }   
     // Generate new habit schedule entries and save them 
-    const habitSchedule = generateHabitSchedule(habitListCluster.habitList,scheduleCluster.scheduleList,utcDayStartMidDay);
+    const habitSchedule = generateHabitSchedule(habitListCluster!.habitList,scheduleCluster!.scheduleList,utcDayStartMidDay);
     try {
         await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:habitSchedule}}});
     } catch (error) {
         res.status(500).send("Failed to retrieve schedule.");
     }
-    const scheduleList:ScheduleItemInterface[] = scheduleCluster.scheduleList.concat(habitSchedule);
+    const scheduleList:ScheduleItemInterface[] = scheduleCluster!.scheduleList.concat(habitSchedule);
     res.status(200).json({scheduleList});
 }
 
-const addPairedScheduleItem = async (time:string|null,targetDate:string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
+const addPairedScheduleItem = async (time:string|null,targetDate:Date|string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,parentId:string,userId:string) => {
     if (parentType === "habit") {
         
     } else {
         if (targetDate) {
-            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),utcOffset);
+            const {utcDayStartMidDay:date} = getDate(new Date(targetDate).getTime(),Number(utcOffset));
             let scheduleItem:any =  new ScheduleItem({date,time,parentId,parentTitle,parentType,alarmUsed,utcOffset});
             try{
                 await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:scheduleItem}});
@@ -107,7 +106,7 @@ const addPairedScheduleItems = async (time:string|null,targetDate:string|null,cr
     }
 }
 
-const updatePairedScheduleItem = async (time:string|null,targetDate:string,parentTitle:string,alarmUsed:boolean,isArchived:boolean,parentId:string,userId:string) => {
+const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string,parentTitle:string,alarmUsed:boolean,isArchived:boolean,parentId:string,userId:string) => {
     // Check old schedule item
     let scheduleCluster;
     try {
@@ -115,7 +114,7 @@ const updatePairedScheduleItem = async (time:string|null,targetDate:string,paren
     } catch (error) {
         return false;
     }
-    const selectedScheduleItem:ScheduleItemInterface = scheduleCluster.scheduleList[0]; 
+    const selectedScheduleItem:ScheduleItemInterface = scheduleCluster!.scheduleList[0]; 
     try {
         await Schedule.findOneAndUpdate(
             {userId:userId,"scheduleList.parentId":parentId},

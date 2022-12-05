@@ -1,7 +1,6 @@
 import { RequestHandler } from "express";
-import { GoalItemInterface } from "../models/goal";
-const {Goal,GoalItem,GoalItemInterface} = require('../models/goal');
-const {addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem} = require("./schedule-controllers");
+import { Goal,GoalItem,GoalItemInterface } from "../models/goal";
+import { addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem } from "./schedule-controllers";
 
 const getGoals:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
@@ -12,7 +11,7 @@ const getGoals:RequestHandler<{userId:string}> = async (req,res,next) => {
         return res.status(500).send('Failed to retrieve goal data.')
     }
     // Returns an array of objects
-    res.status(200).send(goalCluster.goalList)
+    res.status(200).send(goalCluster!.goalList)
 }
 
 const getArchivedGoals:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -24,7 +23,7 @@ const getArchivedGoals:RequestHandler<{userId:string}> = async (req,res,next) =>
         return res.status(500).send('Failed to retrieve goal data.')
     }
     // Returns an array of objects
-    res.status(200).send(goalCluster.goalList);
+    res.status(200).send(goalCluster!.goalList);
 }
 
 const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {

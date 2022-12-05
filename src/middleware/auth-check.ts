@@ -2,7 +2,7 @@ import { RequestHandler } from "express";
 const jwt = require('jsonwebtoken');
 const { SECRET_STRING } = process.env;
 
-const authCheck:RequestHandler = async (req,res,next) => {
+export const authCheck:RequestHandler = async (req,res,next) => {
     const token = req.headers.authorization?.split(" ")[1];
     if(token) {
         try {
@@ -16,5 +16,3 @@ const authCheck:RequestHandler = async (req,res,next) => {
         return res.status(401).send('Unauthorized!')
     }
 }
-
-module.exports.authCheck = authCheck

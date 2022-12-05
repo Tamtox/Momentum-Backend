@@ -6,10 +6,10 @@ interface ScheduleItemInterface {
     parentId:string, 
     parentTitle:string,
     parentType:string,
-    status:String,
+    status:string,
     dateCompleted:Date | null,
     alarmUsed:boolean,
-    utcOffset:string,
+    utcOffset:number,
     isArchived:boolean,
     clientSelectedDayStartTime:number,
     clientTimezoneOffset:number,
@@ -24,7 +24,7 @@ const scheduleItemSchema = new mongoose.Schema<ScheduleItemInterface>({
     status:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
     dateCompleted:{type:Date, default:null},
     alarmUsed:{type:Boolean,required:true},
-    utcOffset:{type:String,required:true},
+    utcOffset:{type:Number,required:true},
     isArchived:{type:Boolean,required:true,default:false},
 })
 

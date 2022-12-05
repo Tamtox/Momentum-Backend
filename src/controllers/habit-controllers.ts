@@ -1,9 +1,7 @@
 import { RequestHandler } from "express";
-import { HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
-import { ScheduleItemInterface } from "../models/schedule";
-const {Schedule,ScheduleItem} = require('../models/schedule');
-const {Habit,HabitEntry,HabitsListItem} = require('../models/habit');
-const {addPairedScheduleItem,updatePairedScheduleItem,deletePairedScheduleItem} = require("./schedule-controllers");
+import { Habit,HabitEntry,HabitsListItem,HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
+import { Schedule,ScheduleItem,ScheduleItemInterface } from "../models/schedule";
+import { addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem } from "./schedule-controllers";
 
 // Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
 const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:HabitEntryInterface[]) => {
@@ -40,6 +38,7 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
             }
             const {time,_id:parentId,title:parentTitle,alarmUsed,creationUTCOffset:utcOffset} = habitItem;
             const newHabitScheduleItem = new ScheduleItem({date,time,parentId,parentTitle,parentType:'habit',alarmUsed,utcOffset});
+            newHabitSchedule.push(newHabitScheduleItem);
         }
     }
     return newHabitEntries;
@@ -87,7 +86,7 @@ const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to retrieve habit data.")
     }
-    const habitList = attachEntriesToItems(habitListCluster.habitList,habitEntriesCluster.habitEntries,utcWeekStartMidDay,utcNextWeekStartMidDay);
+    const habitList = attachEntriesToItems(habitListCluster!.habitList,habitEntriesCluster!.habitEntries,utcWeekStartMidDay,utcNextWeekStartMidDay);
     res.status(200).json({habitList});
 }
 
@@ -99,7 +98,7 @@ const getArchivedHabits:RequestHandler<{userId:string}> = async (req,res,next) =
     } catch (error) {
         return res.status(500).send("Failed to retrieve habit data.");
     }
-    res.status(200).json({archivedHabitList:archivedHabitListCluster.habitList});
+    res.status(200).json({archivedHabitList:archivedHabitListCluster!.habitList});
 }
 
 const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -171,8 +170,8 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to update habit.")
     }
-    const selectedHabit = habitListCluster.habitList[0];
-    const selectedHabitEntries = existingEntriesCluster.habitEntries;
+    const selectedHabit = habitListCluster!.habitList[0];
+    const selectedHabitEntries = existingEntriesCluster!.habitEntries;
     // Repopulate habit entries based on updated habit if weekdays change
     if(weekdays && (Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString())) {
         const newHabitEntries = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
@@ -217,7 +216,7 @@ const populateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
         return res.status(500).send("Failed to populate habit.");
     }
     // Create new entries and schedule items
-    const habitItem:HabitsListItemInterface = habitListCluster.habitList[0];
+    const habitItem:HabitsListItemInterface = habitListCluster!.habitList[0];
     const populatedEntries = createHabitEntries(habitItem,utcWeekStartMidDay,utcNextWeekStartMidDay,true);
     // Push populated entries
     const entries = Object.values(populatedEntries).filter((entry:HabitEntryInterface|null|boolean) => {
@@ -251,7 +250,7 @@ const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
-        const selectedHabitEntries = habitEntriesCluster.habitEntries;
+        const selectedHabitEntries = habitEntriesCluster!.habitEntries;
         const newEntries = createHabitEntries(req.body,utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {

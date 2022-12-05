@@ -1,8 +1,8 @@
 import express from "express";
 const router = express.Router();
-const {getJournalEntry,updateJournalEntry} = require('../controllers/journal-controllers');
-const {lastOnline} = require('../controllers/user-controllers');
-const {authCheck} = require('../middleware/auth-check');
+import { getJournalEntry,updateJournalEntry } from "../controllers/journal-controllers";
+import { lastOnline } from "../controllers/user-controllers";
+import { authCheck } from "../middleware/auth-check";
 
 router.post('/getJournalEntry',authCheck,lastOnline,getJournalEntry)
 
