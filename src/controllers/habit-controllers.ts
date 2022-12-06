@@ -24,15 +24,19 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
         // Check if existing entry status is complete
         if(selectedHabitEntries) {
             selectedHabitEntries.forEach((entry:HabitEntryInterface)=>{
-                if(new Date(entry.date).getDay() === weekday ) {
-                    entry.status === 'Complete' ? status = 'Complete' : status = 'Pending';
+                if (new Date(entry.date).getDay() === weekday ) {
+                    status = entry.status;
                     dateCompleted = entry.dateCompleted;
                 }
             })
         }
         if(habitItem.weekdays[weekday]) {
             newHabitEntries[weekday] = true;
-            if(populateBeforeCreationDate || selectedHabitEntries) {
+            if (populateBeforeCreationDate) {
+                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,isArchived:habitItem.isArchived,dateCompleted});
+                newHabitEntries[weekday] = newHabitEntry;
+            }
+            if (selectedHabitEntries && status == "Complete") {
                 const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,isArchived:habitItem.isArchived,dateCompleted});
                 newHabitEntries[weekday] = newHabitEntry;
             }
