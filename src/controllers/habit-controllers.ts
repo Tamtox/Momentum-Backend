@@ -118,8 +118,9 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
+    const habitEntries = createHabitEntries(newHabit,utcWeekStartMidDay,utcNextWeekStartMidDay,false);
     newHabit = attachEntriesToItems([newHabit],[],utcWeekStartMidDay,utcNextWeekStartMidDay)[0];
-    res.status(200).json({newHabit});
+    res.status(200).json({habitId:newHabit._id,scheduleEntries:null,habitEntries});
 }
 
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -176,8 +177,14 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     const selectedHabit = habitListCluster!.habitList[0];
     const selectedHabitEntries = existingEntriesCluster!.habitEntries;
-    // Repopulate habit entries based on updated habit if weekdays change
-    if(weekdays && (Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString())) {
+    // Repopulate habit entries for current week based on updated habit if weekdays or target date change
+    const weekdaysChange = Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString();
+    let targetDateInCurrentWeek = false;
+    if (goalTargetDate) {
+        targetDateInCurrentWeek = new Date(goalTargetDate).getTime() >= clientCurrentWeekStartTime && new Date(goalTargetDate).getTime() < clientCurrentWeekStartTime;
+    }
+    console.log(targetDateInCurrentWeek)
+    if(weekdays && (weekdaysChange)) {
         const newHabitEntries = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {
@@ -202,7 +209,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
-        res.status(200).json({newEntries:newHabitEntries});
+        res.status(200).json({habitEntries:newHabitEntries});
     } else {
         res.status(200).send("Habit updated successfully.")
     }
