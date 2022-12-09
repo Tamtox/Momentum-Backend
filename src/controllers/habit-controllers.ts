@@ -175,16 +175,13 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to update habit.")
     }
-    const selectedHabit = habitListCluster!.habitList[0];
+    const selectedHabit:HabitsListItemInterface = habitListCluster!.habitList[0];
     const selectedHabitEntries = existingEntriesCluster!.habitEntries;
-    // Repopulate habit entries for current week based on updated habit if weekdays or target date change
+    // Repopulate habit with new entries for current week if weekdays or target date change
     const weekdaysChange = Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString();
-    let targetDateInCurrentWeek = false;
-    if (goalTargetDate) {
-        targetDateInCurrentWeek = new Date(goalTargetDate).getTime() >= clientCurrentWeekStartTime && new Date(goalTargetDate).getTime() < clientCurrentWeekStartTime;
-    }
-    console.log(targetDateInCurrentWeek)
-    if(weekdays && (weekdaysChange)) {
+    let targetDateChange = false;
+    if(selectedHabit.goalTargetDate !== goalTargetDate ) targetDateChange = true;
+    if(weekdays && (weekdaysChange || targetDateChange)) {
         const newHabitEntries = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {

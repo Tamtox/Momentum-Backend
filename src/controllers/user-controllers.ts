@@ -118,7 +118,7 @@ const signup:RequestHandler = async (req,res,next) => {
     }
     // Send confirmation letter
     try{
-        await sendVerificationMail(email,verificationCode,true)
+        // await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
         console.log(error);
     }   
@@ -210,7 +210,7 @@ const sendVerificationLetter:RequestHandler<{userId:string}> = async (req,res,ne
     const verificationCode = existingUser.verificationCode
      // Send confirmation letter
     try{
-        await sendVerificationMail(email,verificationCode,true)
+        // await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
         return res.status(500).send('Failed to send verification letter. Please try again later.')
     }   
@@ -296,7 +296,7 @@ const resetPassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     // Send password reset letter
     try{
-        await sendVerificationMail(email,tempPassword,false);
+        // await sendVerificationMail(email,tempPassword,false);
     } catch(error) {
         return res.status(500).send('Failed to send verification letter. Please try again later.')
     }   
