@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { Journal,JournalEntry } from "../models/journal"
+import { Journal,JournalEntry,JournalEntryInterface } from "../models/journal"
 
 // Get day start and end of selected day
 const getDate = (clientDayStartTime:number,timezoneOffset:number) => {
@@ -11,7 +11,7 @@ const getDate = (clientDayStartTime:number,timezoneOffset:number) => {
 
 const getJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as {clientSelectedDayStartTime:number,clientTimezoneOffset:number};
+    const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as JournalEntryInterface;
     const {clientDayStart,clientNextDayStart} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
     let journalCluster
     try {
@@ -24,7 +24,7 @@ const getJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => 
 
 const updateJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {clientSelectedDayStartTime,clientTimezoneOffset,journalEntry} = req.body as {clientSelectedDayStartTime:number,clientTimezoneOffset:number,journalEntry:string};
+    const {clientSelectedDayStartTime,clientTimezoneOffset,journalEntry,dateCreated,dateEdited} = req.body as JournalEntryInterface
     const {clientDayStart,clientNextDayStart,utcDayStartMidDay} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
     let journalCluster
     try {
@@ -33,20 +33,20 @@ const updateJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) 
         return res.status(500).send("Failed to retrieve journal data.")
     }
     if(journalCluster!.journalEntries.length < 1) {
-        const newJournalEntry = new JournalEntry({date:utcDayStartMidDay,journalEntry});
+        const newJournalEntry = new JournalEntry({date:utcDayStartMidDay,journalEntry,dateCreated,dateEdited});
         try {
             await Journal.findOneAndUpdate({userId:userId},{$push:{journalEntries:newJournalEntry}},);
         } catch (error) {
             return res.status(500).send("Failed to add journal entry. Try again later.");
         }
-        res.status(200).send([newJournalEntry])
+        res.status(200).json({journalId:newJournalEntry._id})
     } else {
         try {
             await Journal.findOneAndUpdate({userId:userId,"journalEntries.date":{$gte:clientDayStart,$lt:clientNextDayStart}},{$set:{"journalEntries.$.journalEntry":journalEntry}})
         } catch (error) {
             return res.status(500).send("Failed to update journal. Try again later.")
         }
-        res.status(200).json("Successfully updated journal entry")
+        res.status(200).send("Successfully updated journal entry")
     }
 }
 
