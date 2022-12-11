@@ -9,8 +9,8 @@ import { Habit } from "../models/habit";
 const generateHabitSchedule = (habitList:HabitsListItemInterface[],existingSchedule:ScheduleItemInterface[],date:number) => {
     const habitSchedule:ScheduleItemInterface[] = existingSchedule.filter((scheduleItem:ScheduleItemInterface)=>scheduleItem.parentType === 'habit');
     const newScheduleItems:ScheduleItemInterface[] = [];
-    habitList.forEach((habitItem:any) => {
-        const habitExists:ScheduleItemInterface|undefined = habitSchedule.find((item:ScheduleItemInterface) => item.parentId === habitItem.id);
+    habitList.forEach((habitItem:HabitsListItemInterface) => {
+        const habitExists:ScheduleItemInterface|undefined = habitSchedule.find((item:ScheduleItemInterface) => item.parentId === habitItem._id);
         // Check if habit weekday is active
         const isWeekday = habitItem.weekdays[new Date(date).getDay()];
         // Check if goal target date reached
