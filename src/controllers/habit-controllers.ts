@@ -4,7 +4,7 @@ import { Schedule,ScheduleItem,ScheduleItemInterface } from "../models/schedule"
 import { addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem } from "./schedule-controllers";
 
 // Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
-const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate?:boolean,selectedHabitEntries?:HabitEntryInterface[]) => {
+const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate?:boolean,existingHabitEntries?:HabitEntryInterface[]) => {
     const newHabitEntries:{[weekday:number]:HabitEntryInterface|null|boolean} = {1:null,2:null,3:null,4:null,5:null,6:null,0:null};
     const newHabitSchedule:ScheduleItemInterface[] = []
     const habitId = habitItem._id;
@@ -22,8 +22,8 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
         // Stop creating entries if target paired goals date has been reached
         if(habitItem.goalTargetDate && date > new Date(habitItem.goalTargetDate).getTime()) break;
         // Check if existing entry status is complete
-        if(selectedHabitEntries) {
-            selectedHabitEntries.forEach((entry:HabitEntryInterface)=>{
+        if(existingHabitEntries) {
+            existingHabitEntries.forEach((entry:HabitEntryInterface)=>{
                 if (new Date(entry.date).getDay() === weekday ) {
                     status = entry.status;
                     dateCompleted = entry.dateCompleted;
@@ -33,11 +33,11 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
         if(habitItem.weekdays[weekday]) {
             newHabitEntries[weekday] = true;
             if (populateBeforeCreationDate) {
-                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,isArchived:habitItem.isArchived,dateCompleted});
+                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
                 newHabitEntries[weekday] = newHabitEntry;
             }
-            if (selectedHabitEntries && status == "Complete") {
-                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,isArchived:habitItem.isArchived,dateCompleted});
+            if (existingHabitEntries && status === "Complete") {
+                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
                 newHabitEntries[weekday] = newHabitEntry;
             }
             const {time,_id:parentId,title:parentTitle,alarmUsed,creationUTCOffset:utcOffset} = habitItem;
@@ -90,8 +90,9 @@ const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send("Failed to retrieve habit data.")
     }
-    const habitList = attachEntriesToItems(habitListCluster!.habitList,habitEntriesCluster!.habitEntries,utcWeekStartMidDay,utcNextWeekStartMidDay);
-    res.status(200).json({habitList});
+    const habitList = habitListCluster!.habitList;
+    const habitEntries = habitEntriesCluster!.habitEntries;
+    res.status(200).json({habitList,habitEntries});
 }
 
 const getArchivedHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -113,8 +114,6 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     let scheduleItems;
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
-        // Add paired schedule items
-        scheduleItems = await addPairedScheduleItem(time,goalTargetDate,title,'habit',alarmUsed,creationUTCOffset,newHabit._id,userId);
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
