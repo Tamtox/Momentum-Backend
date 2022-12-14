@@ -4,8 +4,9 @@ import { Schedule,ScheduleItem,ScheduleItemInterface } from "../models/schedule"
 import { addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem } from "./schedule-controllers";
 
 // Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
-const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate:boolean,existingHabitEntries:HabitEntryInterface[]|null):HabitEntryInterface[] => {
+const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate:boolean,existingHabitEntries:HabitEntryInterface[]|null) => {
     const newHabitEntries:HabitEntryInterface[] = [];
+    const newScheduleEntries:ScheduleItemInterface[] = [];
     const habitId = habitItem._id;
     for (let currentTime = startTime; currentTime < endTime; currentTime += 86400000) {
         const date = new Date(currentTime).setHours(12,0,0,0);
@@ -38,9 +39,12 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
                 const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
                 newHabitEntries.push(newHabitEntry);
             }
+            const {time,title,_id,alarmUsed,creationUTCOffset} = habitItem
+            let newScheduleItem:ScheduleItemInterface = new ScheduleItem({date,time,parentId:_id,parentTitle:title,parentType:"habit",alarmUsed,utcOffset:creationUTCOffset,dateCompleted,status});
+            newScheduleEntries.push(newScheduleItem);
         }
     }
-    return newHabitEntries;
+    return {newHabitEntries,newScheduleEntries};
 }
 
 const getWeekDates = (clientWeekStartTime:number,timezoneOffset:number) => {
@@ -49,7 +53,7 @@ const getWeekDates = (clientWeekStartTime:number,timezoneOffset:number) => {
     const clientWeekStart = new Date(clientWeekStartTime);
     const clientNextWeekStart = new Date(clientWeekStartTime + 86400000 * 7);
     return {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart};
-}
+}   
 
 const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
@@ -81,14 +85,17 @@ const getArchivedHabits:RequestHandler<{userId:string}> = async (req,res,next) =
 
 const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset} = req.body as HabitsListItemInterface;
+    const {title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
+    const {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
     let newHabit:HabitsListItemInterface = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
+    const {newScheduleEntries} = createHabitEntries(newHabit,utcWeekStartMidDay,utcNextWeekStartMidDay,false,null);
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
+        // await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:newScheduleEntries}}});
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
-    res.status(200).json({habitId:newHabit._id,scheduleEntries:null});
+    res.status(200).json({habitId:newHabit._id,scheduleEntries:newScheduleEntries});
 }
 
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
@@ -97,9 +104,7 @@ const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,ne
     // Updates status for existing exntry and creates for blank entry
     if(_id) {
         try {
-            await Habit.findOneAndUpdate(
-                {userId:userId,"habitEntries._id":_id},
-                {$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
+            await Habit.findOneAndUpdate({userId:userId,"habitEntries._id":_id},{$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
@@ -150,7 +155,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     let targetDateChange = false;
     if(selectedHabit.goalTargetDate !== goalTargetDate ) targetDateChange = true;
     if(weekdays && (weekdaysChange || targetDateChange)) {
-        const newHabitEntries = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
+        const {newHabitEntries,newScheduleEntries} = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old entries
         try {
             await Habit.updateMany(
@@ -186,15 +191,15 @@ const populateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     // Create new entries and schedule items
     const habitItem:HabitsListItemInterface = habitListCluster!.habitList[0];
-    const populatedEntries = createHabitEntries(habitItem,utcWeekStartMidDay,utcNextWeekStartMidDay,true,null);
+    const {newHabitEntries,newScheduleEntries} = createHabitEntries(habitItem,utcWeekStartMidDay,utcNextWeekStartMidDay,true,null);
     const populatedEntriesIds:{[weekday:number]:string|null} = {0:null,1:null,2:null,3:null,4:null,5:null,6:null};
-    populatedEntries.forEach((entry:HabitEntryInterface) => {
+    newHabitEntries.forEach((entry:HabitEntryInterface) => {
         const weekday = new Date(entry.date).getDay();
         populatedEntriesIds[weekday] = entry._id;
     })
     // Push populated entries
     try {
-        await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:populatedEntries}}});
+        await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
     } catch (error) {
         return res.status(500).send("Failed to update habit.");
     }
@@ -245,3 +250,4 @@ const deleteHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 }
 
 export {getHabits,getArchivedHabits,addNewHabit,populateHabit,updateHabitEntryStatus,updateHabit,updateHabitArchiveStatus,deleteHabit};
+    
