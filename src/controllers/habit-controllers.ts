@@ -91,7 +91,7 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const {newScheduleEntries} = createHabitEntries(newHabit,utcWeekStartMidDay,utcNextWeekStartMidDay,false,null);
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
-        // await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:newScheduleEntries}}});
+        await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:newScheduleEntries}}});
     } catch (error) {
         return res.status(500).send("Failed to add new habit.");
     }
@@ -156,7 +156,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     if(selectedHabit.goalTargetDate !== goalTargetDate ) targetDateChange = true;
     if(weekdays && (weekdaysChange || targetDateChange)) {
         const {newHabitEntries,newScheduleEntries} = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
-        // Delete old entries
+        // Delete old habit and schedule entries
         try {
             await Habit.updateMany(
                 {userId:userId},
@@ -166,7 +166,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
-        // Push new entries
+        // Push new habit and schedule entries
         try {
             await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
         } catch (error) {
@@ -200,11 +200,12 @@ const populateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Push populated entries
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:{$each:newHabitEntries}}});
+        await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:newScheduleEntries}}});
     } catch (error) {
         return res.status(500).send("Failed to update habit.");
     }
-    // Send newly populated entries ids
-    res.status(200).json({populatedEntriesIds});
+    // Send newly populated entries ids and schedule entries
+    res.status(200).json({populatedEntriesIds,scheduleEntries:newScheduleEntries});
 }
 
 const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,next) => {

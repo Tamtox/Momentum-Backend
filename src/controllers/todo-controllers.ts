@@ -75,7 +75,7 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch (error) {
         return res.status(500).send('Failed to update todo.');
     }
-    if (scheduleItem !== true) {
+    if(scheduleItem !== true) {
         res.status(200).json({scheduleId:scheduleItem._id});
     } else {
         res.status(200).send("Successfully updated todo.");

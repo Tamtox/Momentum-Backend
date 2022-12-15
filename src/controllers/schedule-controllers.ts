@@ -64,14 +64,13 @@ const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
         res.status(500).send("Failed to retrieve schedule.");
     }   
     // Generate new habit schedule entries and save them 
-    const habitSchedule = generateHabitSchedule(habitListCluster!.habitList,utcDayStartMidDay,utcNextDayMidDay,scheduleCluster!.scheduleList);
-    console.log(habitSchedule)
+    // const habitSchedule = generateHabitSchedule(habitListCluster!.habitList,utcDayStartMidDay,utcNextDayMidDay,scheduleCluster!.scheduleList);
     // try {
     //     await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:habitSchedule}}});
     // } catch (error) {
     //     res.status(500).send("Failed to retrieve schedule.");
     // }
-    const scheduleList:ScheduleItemInterface[] = scheduleCluster!.scheduleList.concat(habitSchedule);
+    const scheduleList:ScheduleItemInterface[] = scheduleCluster!.scheduleList;
     res.status(200).json({scheduleList}); 
 }
 
@@ -126,6 +125,7 @@ const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string|
         } 
         // Update schedule item
         else {
+            let updatedScheduleCluster
             try {
                 await Schedule.findOneAndUpdate(
                     {userId:userId,"scheduleList.parentId":parentId},
@@ -137,10 +137,21 @@ const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string|
                         "scheduleList.$.isArchived":isArchived,
                     }}
                 )
+                updatedScheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$eq:["$$item.parentId",parentId]}}}});
             } catch (error) {
                 return false;
             }
-            return true
+            if (isArchived) {
+                return true
+            } else {
+                // Return schedule item if it gets unarchived
+                if (selectedScheduleItem.isArchived === true && isArchived === false) {
+                    const updatedScheduleItem = updatedScheduleCluster!.scheduleList[0];
+                    return updatedScheduleItem;
+                } else {
+                    return true
+                }
+            }
         }
     }
 }
