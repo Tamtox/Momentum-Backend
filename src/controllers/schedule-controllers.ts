@@ -4,6 +4,7 @@ import { HabitsListItemInterface } from "../models/habit";
 import { TodoItemInterface } from "../models/todo";
 import { GoalItemInterface } from "../models/goal";
 import { Habit } from "../models/habit";
+import { getDate } from "../misc/utility-functions";
 
 // Generate new schedule items for habits
 const generateHabitSchedule = (habitList:HabitsListItemInterface[],startTime:number,endTime:number,existingSchedule:ScheduleItemInterface[]) => {
@@ -16,7 +17,7 @@ const generateHabitSchedule = (habitList:HabitsListItemInterface[],startTime:num
             // Check if habit weekday is active
             const isWeekday = habitItem.weekdays[new Date(date).getDay()];
             // Check if goal target date reached
-            const habitGoalTargetReached:boolean = habitItem.goalTargetDate ? new Date(date).getTime() > new Date(habitItem.goalTargetDate).getTime() : false;
+            const habitGoalTargetReached:boolean = habitItem.targetDate ? new Date(date).getTime() > new Date(habitItem.targetDate).getTime() : false;
             // Check habit creation date
             const afterCreationDate:boolean = new Date(date).getTime() > new Date(habitItem.creationDate).getTime();
             if(!habitExists && isWeekday && !habitGoalTargetReached && afterCreationDate) {
@@ -37,17 +38,6 @@ const generateHabitSchedule = (habitList:HabitsListItemInterface[],startTime:num
         })
     }
     return newScheduleItems;
-}
-
-// Get day start and end of selected day
-const getDate = (clientDayStartTime:number,timezoneOffset:number) => {
-    const utcDayStartMidDay:number = new Date(clientDayStartTime + timezoneOffset * - 60000).setHours(12,0,0,0);
-    const utcNextDayMidDay:number = new Date(clientDayStartTime + timezoneOffset * - 60000).setHours(12,0,0,0) + 86400000;
-    const utcMonthStartMidDay:number = new Date(utcDayStartMidDay).getTime() - ((new Date(utcDayStartMidDay).getDate() - 1 ) * 86400000); 
-    const utcNextMonthStartMidDay:number = new Date(new Date(utcDayStartMidDay).getFullYear(),new Date(utcDayStartMidDay).getMonth() + 1,1,0,0,0,0).getTime() - 1;
-    const clientDayStart:Date = new Date(clientDayStartTime);
-    const clientNextDayStart:Date = new Date(clientDayStartTime + 86400000);
-    return {utcDayStartMidDay,utcNextDayMidDay,clientDayStart,clientNextDayStart};
 }
 
 const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {

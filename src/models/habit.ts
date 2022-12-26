@@ -19,8 +19,7 @@ interface HabitsListItemInterface {
     time:string | null, /* Date format : .toLocaleTimeString() */
     creationDate:Date, /* Date format : .getTime() */
     weekdays:{[weekday:number]:boolean},
-    goalId:string | null,
-    goalTargetDate:Date | null, /* Date format : .getTime() */
+    targetDate:Date | null, /* Date format : .getTime() */
     isArchived:boolean,
     creationUTCOffset:number,
     alarmUsed:boolean
@@ -35,8 +34,7 @@ const habitsListItemSchema = new mongoose.Schema<HabitsListItemInterface>({
     time:{type:String,default:null},
     creationDate:{type:Date,required:true}, 
     weekdays:{0:{type:Boolean,required:true},1:{type:Boolean,required:true},2:{type:Boolean,required:true},3:{type:Boolean,required:true},4:{type:Boolean,required:true},5:{type:Boolean,required:true},6:{type:Boolean,required:true}},
-    goalId:{type:String,default:null},
-    goalTargetDate:{type:Date,default:null},
+    targetDate:{type:Date,default:null},
     isArchived:{type:Boolean,required:true,default:false},
     creationUTCOffset:{type:Number,required:true},
     alarmUsed:{type:Boolean,required:true},

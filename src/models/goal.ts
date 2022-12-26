@@ -7,7 +7,6 @@ export interface GoalItemInterface {
     targetTime:string | null, /* Date format : .toLocaleTimeString() */
     status:string,
     dateCompleted:Date | null, /* Date format : Date.toISOString() */
-    habitId:string | null,
     isArchived:boolean,
     creationUTCOffset:number,
     alarmUsed:boolean,
@@ -20,7 +19,6 @@ const goalItemSchema = new mongoose.Schema<GoalItemInterface>({
     targetTime:{type:String,default:null,required:false},
     status:{type:String,enum: ['Pending','Complete'],required:true,default:"Pending"},
     dateCompleted:{type:Date,default:null},
-    habitId:{type:String,default:null},
     isArchived:{type:Boolean,required:true,default:false},
     creationUTCOffset:{type:Number,required:true}, 
     alarmUsed:{type:Boolean,required:true},

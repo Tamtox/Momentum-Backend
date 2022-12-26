@@ -2,58 +2,59 @@ import { RequestHandler } from "express";
 import { Habit,HabitEntry,HabitsListItem,HabitEntryInterface, HabitsListItemInterface } from "../models/habit";
 import { Schedule,ScheduleItem,ScheduleItemInterface } from "../models/schedule";
 import { addPairedScheduleItem, updatePairedScheduleItem,deletePairedScheduleItem } from "./schedule-controllers";
+import { createHabitEntries,getWeekDates } from "../misc/utility-functions";
 
-// Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
-const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate:boolean,existingHabitEntries:HabitEntryInterface[]|null) => {
-    const newHabitEntries:HabitEntryInterface[] = [];
-    const newScheduleEntries:ScheduleItemInterface[] = [];
-    const habitId = habitItem._id;
-    for (let currentTime = startTime; currentTime < endTime; currentTime += 86400000) {
-        const date = new Date(currentTime).setHours(12,0,0,0);
-        const weekday = new Date(currentTime).getDay();
-        const weekStartTime = new Date(currentTime).setHours(0,0,0,0) + 86400000 * (weekday? 1 - weekday : -6);
-        let dateCompleted:Date|null = null;
-        let status = 'Pending';
-        // Stop creating entries if selected date is before habit creation week's start
-        const habitCreationTime = new Date(habitItem.creationDate).getTime() + habitItem.creationUTCOffset * - 60000;
-        const habitCreationWeekday = new Date(habitCreationTime).getDay();
-        const habitCreationDatesWeekStart = new Date(habitCreationTime).setHours(12,0,0,0) + 86400000 * (habitCreationWeekday ? 1 - habitCreationWeekday : -6);
-        if(habitCreationDatesWeekStart > weekStartTime + 86400000 * 7 - 1 && !populateBeforeCreationDate) break;
-        // Stop creating entries if target paired goals date has been reached
-        if(habitItem.goalTargetDate && date > new Date(habitItem.goalTargetDate).getTime()) break;
-        // Check if existing entry status is complete
-        if(existingHabitEntries) {
-            existingHabitEntries.forEach((entry:HabitEntryInterface)=>{
-                if (new Date(entry.date).getDay() === weekday ) {
-                    status = entry.status;
-                    dateCompleted = entry.dateCompleted;
-                }
-            })
-        }
-        if(habitItem.weekdays[weekday]) {
-            if (populateBeforeCreationDate) {
-                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
-                newHabitEntries.push(newHabitEntry);
-            }
-            if (existingHabitEntries && status === "Complete") {
-                const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
-                newHabitEntries.push(newHabitEntry);
-            }
-            const {time,title,_id,alarmUsed,creationUTCOffset} = habitItem
-            let newScheduleItem:ScheduleItemInterface = new ScheduleItem({date,time,parentId:_id,parentTitle:title,parentType:"habit",alarmUsed,utcOffset:creationUTCOffset,dateCompleted,status});
-            newScheduleEntries.push(newScheduleItem);
-        }
-    }
-    return {newHabitEntries,newScheduleEntries};
-}
+// // Habit Entries generation algorithm | null if no entry , true if placeholder until status change , entry if it exists
+// const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,endTime:number,populateBeforeCreationDate:boolean,existingHabitEntries:HabitEntryInterface[]|null) => {
+//     const newHabitEntries:HabitEntryInterface[] = [];
+//     const newScheduleEntries:ScheduleItemInterface[] = [];
+//     const habitId = habitItem._id;
+//     for (let currentTime = startTime; currentTime < endTime; currentTime += 86400000) {
+//         const date = new Date(currentTime).setHours(12,0,0,0);
+//         const weekday = new Date(currentTime).getDay();
+//         const weekStartTime = new Date(currentTime).setHours(0,0,0,0) + 86400000 * (weekday? 1 - weekday : -6);
+//         let dateCompleted:Date|null = null;
+//         let status = 'Pending';
+//         // Stop creating entries if selected date is before habit creation week's start
+//         const habitCreationTime = new Date(habitItem.creationDate).getTime() + habitItem.creationUTCOffset * - 60000;
+//         const habitCreationWeekday = new Date(habitCreationTime).getDay();
+//         const habitCreationDatesWeekStart = new Date(habitCreationTime).setHours(12,0,0,0) + 86400000 * (habitCreationWeekday ? 1 - habitCreationWeekday : -6);
+//         if(habitCreationDatesWeekStart > weekStartTime + 86400000 * 7 - 1 && !populateBeforeCreationDate) break;
+//         // Stop creating entries if target paired goals date has been reached
+//         if(habitItem.targetDate && date > new Date(habitItem.targetDate).getTime()) break;
+//         // Check if existing entry status is complete
+//         if(existingHabitEntries) {
+//             existingHabitEntries.forEach((entry:HabitEntryInterface)=>{
+//                 if (new Date(entry.date).getDay() === weekday ) {
+//                     status = entry.status;
+//                     dateCompleted = entry.dateCompleted;
+//                 }
+//             })
+//         }
+//         if(habitItem.weekdays[weekday]) {
+//             if (populateBeforeCreationDate) {
+//                 const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
+//                 newHabitEntries.push(newHabitEntry);
+//             }
+//             if (existingHabitEntries && status === "Complete") {
+//                 const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
+//                 newHabitEntries.push(newHabitEntry);
+//             }
+//             const {time,title,_id,alarmUsed,creationUTCOffset} = habitItem
+//             let newScheduleItem:ScheduleItemInterface = new ScheduleItem({date,time,parentId:_id,parentTitle:title,parentType:"habit",alarmUsed,utcOffset:creationUTCOffset,dateCompleted,status});
+//             newScheduleEntries.push(newScheduleItem);
+//         }
+//     }
+//     return {newHabitEntries,newScheduleEntries};
+// }
 
-const getWeekDates = (clientWeekStartTime:number,timezoneOffset:number) => {
-    const utcWeekStartMidDay = new Date(clientWeekStartTime + timezoneOffset * -60000).setHours(12,0,0,0);
-    const utcNextWeekStartMidDay = new Date(clientWeekStartTime + timezoneOffset * -60000).setHours(12,0,0,0) + 86400000 * 7;
-    const clientWeekStart = new Date(clientWeekStartTime);
-    const clientNextWeekStart = new Date(clientWeekStartTime + 86400000 * 7);
-    return {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart};
-}   
+// const getWeekDates = (clientWeekStartTime:number,timezoneOffset:number) => {
+//     const utcWeekStartMidDay = new Date(clientWeekStartTime + timezoneOffset * -60000).setHours(12,0,0,0);
+//     const utcNextWeekStartMidDay = new Date(clientWeekStartTime + timezoneOffset * -60000).setHours(12,0,0,0) + 86400000 * 7;
+//     const clientWeekStart = new Date(clientWeekStartTime);
+//     const clientNextWeekStart = new Date(clientWeekStartTime + 86400000 * 7);
+//     return {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart};
+// }   
 
 const getHabits:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
@@ -85,9 +86,9 @@ const getArchivedHabits:RequestHandler<{userId:string}> = async (req,res,next) =
 
 const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
+    const {title,weekdays,creationDate,time,targetDate,alarmUsed,creationUTCOffset,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
-    let newHabit:HabitsListItemInterface = new HabitsListItem({title,weekdays,creationDate,time,goalTargetDate,alarmUsed,creationUTCOffset});
+    let newHabit:HabitsListItemInterface = new HabitsListItem({title,weekdays,creationDate,time,targetDate,alarmUsed,creationUTCOffset});
     const {newScheduleEntries} = createHabitEntries(newHabit,utcWeekStartMidDay,utcNextWeekStartMidDay,false,null);
     try {
         await Habit.findOneAndUpdate({userId:userId},{$push:{habitList:newHabit}});
@@ -101,7 +102,7 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     const {status,habitId,dateCompleted,_id,date} = req.body as HabitEntryInterface;
-    // Updates status for existing exntry and creates for blank entry
+    // Updates status for existing exntry or creates new for blank entry
     if(_id) {
         try {
             await Habit.findOneAndUpdate({userId:userId,"habitEntries._id":_id},{$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
@@ -122,7 +123,7 @@ const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,ne
 
 const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {title,weekdays,time,goalId,goalTargetDate,_id,isArchived,alarmUsed,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
+    const {title,weekdays,time,targetDate,_id,isArchived,alarmUsed,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
     let existingEntriesCluster ;
     let habitListCluster;
@@ -138,8 +139,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "habitList.$.title":title,
                 "habitList.$.weekdays":weekdays,
                 "habitList.$.time":time,
-                "habitList.$.goalId":goalId,
-                "habitList.$.goalTargetDate":goalTargetDate,
+                "habitList.$.targetDate":targetDate,
                 "habitList.$.isArchived":isArchived,
                 "habitList.$.alarmUsed":alarmUsed,
             }
@@ -153,9 +153,9 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Repopulate habit with new entries for current week if weekdays or target date change
     const weekdaysChange = Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString();
     let targetDateChange = false;
-    if(selectedHabit.goalTargetDate !== goalTargetDate ) targetDateChange = true;
+    if(selectedHabit.targetDate !== targetDate ) targetDateChange = true;
     if(weekdays && (weekdaysChange || targetDateChange)) {
-        const {newHabitEntries,newScheduleEntries} = createHabitEntries({...selectedHabit,title,weekdays,time,goalId,goalTargetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
+        const {newHabitEntries,newScheduleEntries} = createHabitEntries({...selectedHabit,title,weekdays,time,targetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old habit and schedule entries
         try {
             await Habit.updateMany(
@@ -210,7 +210,7 @@ const populateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
-    const {title,weekdays,time,goalId,goalTargetDate,_id,isArchived,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
+    const {title,weekdays,time,targetDate,_id,isArchived,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
     // Update archivation status in habit list
     try {

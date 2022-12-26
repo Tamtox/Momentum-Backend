@@ -1,13 +1,6 @@
 import { RequestHandler } from "express";
-import { Journal,JournalEntry,JournalEntryInterface } from "../models/journal"
-
-// Get day start and end of selected day
-const getDate = (clientDayStartTime:number,timezoneOffset:number) => {
-    const utcDayStartMidDay = new Date(clientDayStartTime + timezoneOffset * -60000).setHours(12,0,0,0);
-    const clientDayStart = new Date(clientDayStartTime);
-    const clientNextDayStart = new Date(clientDayStartTime + 86400000);
-    return {utcDayStartMidDay,clientDayStart,clientNextDayStart};
-}
+import { Journal,JournalEntry,JournalEntryInterface } from "../models/journal";
+import { getDate } from "../misc/utility-functions";
 
 const getJournalEntry:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
