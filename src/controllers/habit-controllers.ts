@@ -172,7 +172,7 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
-        res.status(200).json({habitEntries:newHabitEntries});
+        res.status(200).json({habitEntries:newHabitEntries,scheduleEntries:newScheduleEntries});
     } else {
         res.status(200).send("Habit updated successfully.")
     }

@@ -230,7 +230,7 @@ const changePassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     if(!existingUser) {
         return res.status(404).send('User does not exist!')
     } 
-     // Validate password
+    // Validate password
     let isValidPassword
     try{
         isValidPassword = await bcrypt.compare(currentPass, existingUser.password);
