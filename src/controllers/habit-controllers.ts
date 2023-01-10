@@ -160,9 +160,10 @@ const updateHabitArchiveStatus:RequestHandler<{userId:string}> = async (req,res,
     const userId = req.params.userId
     const {title,weekdays,time,targetDate,_id,isArchived,clientCurrentWeekStartTime,clientTimezoneOffset} = req.body as HabitsListItemInterface;
     const {utcWeekStartMidDay,utcNextWeekStartMidDay,clientWeekStart,clientNextWeekStart} = getWeekDates(clientCurrentWeekStartTime,clientTimezoneOffset);
-    // Update archivation status in habit list
+    // Update archivation status of habit and its schedule entries
     try {
-        await Habit.findOneAndUpdate({userId:userId,"habitList._id":_id},{$set:{"habitList.$.isArchived":isArchived}})
+        await Habit.findOneAndUpdate({userId:userId,"habitList._id":_id},{$set:{"habitList.$.isArchived":isArchived}});
+        await Schedule.findOneAndUpdate({userId:userId,"scheduleList._id":_id},{$set:{"habitList.$.isArchived":isArchived}})
     } catch (error) {
         return res.status(500).send("Failed to update habit.");
     }
