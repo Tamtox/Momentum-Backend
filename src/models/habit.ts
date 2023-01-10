@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 interface HabitEntryInterface {
     date:Date /* Date format : .getTime() */
     status:string,
-    dateCompleted:Date | null /* Date format : .getTime() */
+    dateCompleted:Date | null /* Date format : .toIsoString() */
     habitId:string,
     _id:string
 }
@@ -19,7 +19,7 @@ interface HabitsListItemInterface {
     time:string | null, /* Date format : .toLocaleTimeString() */
     creationDate:Date, /* Date format : .getTime() */
     weekdays:{[weekday:number]:boolean},
-    targetDate:Date | null, /* Date format : .getTime() */
+    targetDate:Date | null, /* Date format : .toIsoString() */
     isArchived:boolean,
     creationUTCOffset:number,
     alarmUsed:boolean

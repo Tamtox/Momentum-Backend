@@ -4,62 +4,20 @@ import { HabitsListItemInterface } from "../models/habit";
 import { TodoItemInterface } from "../models/todo";
 import { GoalItemInterface } from "../models/goal";
 import { Habit } from "../models/habit";
-import { getDate } from "../misc/utility-functions";
+import { getDate,createHabitEntries } from "../misc/utility-functions";
 
-// Generate new schedule items for habits
-const generateHabitSchedule = (habitList:HabitsListItemInterface[],startTime:number,endTime:number,existingSchedule:ScheduleItemInterface[]) => {
-    const habitSchedule:ScheduleItemInterface[] = existingSchedule.filter((scheduleItem:ScheduleItemInterface)=>scheduleItem.parentType === 'habit');
-    const newScheduleItems:ScheduleItemInterface[] = [];
-    for (let currentTime = startTime; currentTime < endTime; currentTime += 86400000) {
-        const date = new Date(currentTime).setHours(12,0,0,0);
-        habitList.forEach((habitItem:HabitsListItemInterface) => {
-            const habitExists:ScheduleItemInterface|undefined = habitSchedule.find((item:ScheduleItemInterface) => item.parentId === habitItem._id);
-            // Check if habit weekday is active
-            const isWeekday = habitItem.weekdays[new Date(date).getDay()];
-            // Check if goal target date reached
-            const habitGoalTargetReached:boolean = habitItem.targetDate ? new Date(date).getTime() > new Date(habitItem.targetDate).getTime() : false;
-            // Check habit creation date
-            const afterCreationDate:boolean = new Date(date).getTime() > new Date(habitItem.creationDate).getTime();
-            if(!habitExists && isWeekday && !habitGoalTargetReached && afterCreationDate) {
-                const newScheduleItem:ScheduleItemInterface = new ScheduleItem({
-                    date:new Date(date),
-                    time:habitItem.time,
-                    parentId:habitItem._id,
-                    parentTitle:habitItem.title,
-                    parentType:'habit',
-                    status:"Pending",
-                    dateCompleted:null,
-                    alarmUsed:habitItem.alarmUsed,
-                    utcOffset:habitItem.creationUTCOffset,
-                    isArchived:false,
-                })
-                newScheduleItems.push(newScheduleItem);
-            }
-        })
-    }
-    return newScheduleItems;
-}
 
 const getSchedule:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
     const {clientSelectedDayStartTime,clientTimezoneOffset} = req.body as ScheduleItemInterface;
     const {utcDayStartMidDay,utcNextDayMidDay,clientDayStart,clientNextDayStart} = getDate(clientSelectedDayStartTime,clientTimezoneOffset);
     let scheduleCluster:any;
-    let habitListCluster:any;
     // Retreives schedule for selected day
     try{
         scheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$and:[{$gte:["$$item.date",clientDayStart]},{$lt:["$$item.date",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
-        habitListCluster = await Habit.findOne({userId:userId},{habitList:{$filter:{input:"$habitList",as:"item",cond:{$and:[{$gte:["$$item.creationDate",clientDayStart]},{$lt:["$$item.goalTargetDate",clientNextDayStart]},{$eq:["$$item.isArchived",false]}]}}}});
     } catch(error) {
         res.status(500).send("Failed to retrieve schedule.");
     }   
-    // Generate new habit schedule entries and save them 
-    // const habitSchedule = generateHabitSchedule(habitListCluster!.habitList,utcDayStartMidDay,utcNextDayMidDay,scheduleCluster!.scheduleList);
-    // try {
-    //     await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:{$each:habitSchedule}}});
-    // } catch (error) {
-    //     res.status(500).send("Failed to retrieve schedule.");
-    // }
     const scheduleList:ScheduleItemInterface[] = scheduleCluster!.scheduleList;
     res.status(200).json({scheduleList}); 
 }
@@ -174,3 +132,4 @@ const deletePairedScheduleItem = async (userId:string,parentId:string) => {
 }
 
 export {getSchedule,addPairedScheduleItem,updatePairedScheduleItem,updateScheduleItemStatus,deletePairedScheduleItem};
+
