@@ -52,9 +52,10 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
                 const newHabitEntry:HabitEntryInterface = new HabitEntry({date,habitId,status,dateCompleted});
                 newHabitEntries.push(newHabitEntry);
                 const {time,title,_id,alarmUsed,creationUTCOffset,isArchived} = habitItem
-                let newScheduleItem:ScheduleItemInterface = new ScheduleItem(
-                    {
-                        date,time,parentId:_id,
+                let newScheduleItem:ScheduleItemInterface = new ScheduleItem({
+                        date,
+                        time,
+                        parentId:_id,
                         parentTitle:title,
                         parentType:"habit",
                         alarmUsed,
@@ -63,7 +64,7 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
                         status,
                         isArchived,
                         _id:newHabitEntry._id
-                    });
+                });
                 newScheduleEntries.push(newScheduleItem);
             }
         }

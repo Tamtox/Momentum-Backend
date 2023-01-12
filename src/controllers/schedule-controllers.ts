@@ -37,7 +37,7 @@ const addPairedScheduleItem = async (time:string|null,targetDate:Date|string|nul
     }
 }
 
-const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,isArchived:boolean,parentId:string,userId:string) => {
+const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string|null,parentTitle:string,parentType:string,alarmUsed:boolean,utcOffset:number,isArchived:boolean,dateCompleted:Date|null,status:string,parentId:string,userId:string) => {
     // Check old schedule item
     let scheduleCluster;
     try {
@@ -83,6 +83,8 @@ const updatePairedScheduleItem = async (time:string|null,targetDate:Date|string|
                         "scheduleList.$.parentTitle":parentTitle,
                         "scheduleList.$.alarmUsed":alarmUsed,
                         "scheduleList.$.isArchived":isArchived,
+                        "scheduleList.$.dateCompleted":dateCompleted,
+                        "scheduleList.$.status":status,
                     }}
                 )
                 updatedScheduleCluster = await Schedule.findOne({userId:userId},{scheduleList:{$filter:{input:"$scheduleList",as:"item",cond:{$eq:["$$item.parentId",parentId]}}}});

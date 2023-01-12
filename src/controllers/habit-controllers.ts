@@ -49,22 +49,36 @@ const addNewHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 const updateHabitEntryStatus:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     const {status,habitId,dateCompleted,_id,date} = req.body as HabitEntryInterface;
-    // Updates status for existing entry or creates new for blank entry
+    // Updates status for existing entry or creates new habit and schedule entries
     if(_id) {
         try {
-            await Habit.findOneAndUpdate({userId:userId,"habitEntries._id":_id},{$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}})
+            await Habit.findOneAndUpdate({userId:userId,"habitEntries._id":_id},{$set:{[`habitEntries.$.status`]:status,"habitEntries.$.dateCompleted":dateCompleted}});
+            await Schedule.findOneAndUpdate({userId:userId,"scheduleList._id":_id},{$set:{[`scheduleList.$.status`]:status,"scheduleList.$.dateCompleted":dateCompleted}});
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
         res.status(200).send("Successfully updated habit");
     } else {
-        const newEntry = new HabitEntry({date,status,habitId,dateCompleted});
+        // Get parent habit
+        let habitListCluster;
         try {
-            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:newEntry}});
+            habitListCluster = await Habit.findOne({userId:userId},{habitList:{$elemMatch:{"_id":habitId}}});
+        } catch (error) {
+            return res.status(500).send("Failed to update habit.")
+        }
+        const selectedHabit:HabitsListItemInterface = habitListCluster!.habitList[0];
+        const {time,title,alarmUsed,creationUTCOffset,isArchived} = selectedHabit;
+        const newHabitEntry = new HabitEntry({date,status,habitId,dateCompleted});
+        let newScheduleEntry:ScheduleItemInterface = new ScheduleItem({
+            date,time,parentId:habitId,parentTitle:title,parentType:"habit",alarmUsed,utcOffset:creationUTCOffset,dateCompleted,status,isArchived,_id:newHabitEntry._id
+        });
+        try {
+            await Habit.findOneAndUpdate({userId:userId},{$push:{habitEntries:newHabitEntry}});
+            await Schedule.findOneAndUpdate({userId:userId},{$push:{scheduleList:newScheduleEntry}});
         } catch (error) {
             return res.status(500).send("Failed to update habit.");
         }
-        res.status(200).json({_id:newEntry._id});
+        res.status(200).json({_id:newHabitEntry._id});
     }
 }
 
@@ -200,4 +214,3 @@ const deleteHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
 }
 
 export {getHabits,getArchivedHabits,addNewHabit,populateHabit,updateHabitEntryStatus,updateHabit,updateHabitArchiveStatus,deleteHabit};
-    

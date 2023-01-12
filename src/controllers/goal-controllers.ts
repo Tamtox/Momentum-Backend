@@ -65,7 +65,7 @@ const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "goalList.$.alarmUsed":alarmUsed,
             }}
         );
-        scheduleItem = await updatePairedScheduleItem(null,targetDate,title,"goal",alarmUsed,creationUTCOffset,isArchived,_id,userId);
+        scheduleItem = await updatePairedScheduleItem(null,targetDate,title,"goal",alarmUsed,creationUTCOffset,isArchived,dateCompleted,status,_id,userId);
         if (!scheduleItem) {
             throw new Error("Failed");
         }

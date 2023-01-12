@@ -68,7 +68,7 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "todoList.$.isArchived":isArchived,
             }}
         )
-        scheduleItem = await updatePairedScheduleItem(targetTime,targetDate,title,"todo",alarmUsed,creationUTCOffset,isArchived,_id,userId);
+        scheduleItem = await updatePairedScheduleItem(targetTime,targetDate,title,"todo",alarmUsed,creationUTCOffset,isArchived,dateCompleted,status,_id,userId);
         if (!scheduleItem) {
             throw new Error("Failed");
         }
