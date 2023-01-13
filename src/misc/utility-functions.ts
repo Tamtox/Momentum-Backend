@@ -53,8 +53,7 @@ const createHabitEntries = (habitItem:HabitsListItemInterface,startTime:number,e
                 newHabitEntries.push(newHabitEntry);
                 const {time,title,_id,alarmUsed,creationUTCOffset,isArchived} = habitItem
                 let newScheduleItem:ScheduleItemInterface = new ScheduleItem({
-                        date,
-                        time,
+                        date,time,
                         parentId:_id,
                         parentTitle:title,
                         parentType:"habit",

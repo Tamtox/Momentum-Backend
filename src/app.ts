@@ -20,7 +20,7 @@ app.use(cors());
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
 
-// Headers config
+// // Headers config
 // app.use((req:Request,res:Response,next:NextFunction)=>{
 //     res.setHeader('Access-Control-Allow-Origin','*');
 //     res.setHeader('Access-Control-Allow-Headers','Origin,X-Requested-With,Content-Type,Accept,Authorization');

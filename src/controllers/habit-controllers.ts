@@ -113,9 +113,9 @@ const updateHabit:RequestHandler<{userId:string}> = async (req,res,next) => {
     const selectedHabitEntries = existingEntriesCluster!.habitEntries;
     // Repopulate habit with new entries for current week if weekdays or target date change
     const weekdaysChange = Object.values(weekdays).toString() !== Object.values(selectedHabit.weekdays).toString();
-    let targetDateChange = false;
-    if(selectedHabit.targetDate !== targetDate ) targetDateChange = true;
-    if(weekdays && (weekdaysChange || targetDateChange)) {
+    const oldTargetDate:string|null = selectedHabit.targetDate ? new Date(selectedHabit.targetDate).toISOString() : null;
+    const newTargetDate:string|null = targetDate ? new Date(targetDate).toISOString() : null;
+    if(weekdays && (weekdaysChange || oldTargetDate !== newTargetDate)) {
         const {newHabitEntries,newScheduleEntries} = createHabitEntries({...selectedHabit,title,weekdays,time,targetDate,_id,isArchived},utcWeekStartMidDay,utcNextWeekStartMidDay,false,selectedHabitEntries);
         // Delete old habit and schedule entries
         try {
