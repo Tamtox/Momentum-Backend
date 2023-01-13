@@ -51,7 +51,7 @@ const addNewGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
 
 const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId;
-    const {title,targetDate,status,dateCompleted,habitId,_id,isArchived,alarmUsed,creationUTCOffset} = req.body as GoalItemInterface;
+    const {title,targetDate,status,dateCompleted,_id,isArchived,alarmUsed,creationUTCOffset} = req.body as GoalItemInterface;
     let scheduleItem:ScheduleItemInterface | boolean;
     try {
         await Goal.findOneAndUpdate(
@@ -61,12 +61,11 @@ const updateGoal:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "goalList.$.targetDate":targetDate,
                 "goalList.$.status":status,
                 "goalList.$.dateCompleted":dateCompleted,
-                "goalList.$.habitId":habitId,
                 "goalList.$.isArchived":isArchived,
                 "goalList.$.alarmUsed":alarmUsed,
             }}
         );
-        scheduleItem = await updatePairedScheduleItem(null,targetDate,title,"goal",alarmUsed,creationUTCOffset,isArchived,_id,userId);
+        scheduleItem = await updatePairedScheduleItem(null,targetDate,title,"goal",alarmUsed,creationUTCOffset,isArchived,dateCompleted,status,_id,userId);
         if (!scheduleItem) {
             throw new Error("Failed");
         }

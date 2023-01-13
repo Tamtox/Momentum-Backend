@@ -68,14 +68,14 @@ const updateTodo:RequestHandler<{userId:string}> = async (req,res,next) => {
                 "todoList.$.isArchived":isArchived,
             }}
         )
-        scheduleItem = await updatePairedScheduleItem(targetTime,targetDate,title,"todo",alarmUsed,creationUTCOffset,isArchived,_id,userId);
+        scheduleItem = await updatePairedScheduleItem(targetTime,targetDate,title,"todo",alarmUsed,creationUTCOffset,isArchived,dateCompleted,status,_id,userId);
         if (!scheduleItem) {
             throw new Error("Failed");
         }
     } catch (error) {
         return res.status(500).send('Failed to update todo.');
     }
-    if (scheduleItem !== true) {
+    if(scheduleItem !== true) {
         res.status(200).json({scheduleId:scheduleItem._id});
     } else {
         res.status(200).send("Successfully updated todo.");

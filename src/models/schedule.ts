@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 
 interface ScheduleItemInterface {
     date:Date /* Date format : .toLocaleString() */

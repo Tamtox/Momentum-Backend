@@ -61,7 +61,7 @@ const signup:RequestHandler = async (req,res,next) => {
         return res.status(500).send('Failed to create new user. Please try again later.')
     }
     // Confirmation Code for verification
-    let verificationCode = ''
+    let verificationCode = '';
     for(let i=0;i<7;i++) {
         verificationCode += Math.floor(Math.random() * 10);
     }
@@ -118,7 +118,7 @@ const signup:RequestHandler = async (req,res,next) => {
     }
     // Send confirmation letter
     try{
-        await sendVerificationMail(email,verificationCode,true)
+        // await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
         console.log(error);
     }   
@@ -210,7 +210,7 @@ const sendVerificationLetter:RequestHandler<{userId:string}> = async (req,res,ne
     const verificationCode = existingUser.verificationCode
      // Send confirmation letter
     try{
-        await sendVerificationMail(email,verificationCode,true)
+        // await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
         return res.status(500).send('Failed to send verification letter. Please try again later.')
     }   
@@ -230,7 +230,7 @@ const changePassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     if(!existingUser) {
         return res.status(404).send('User does not exist!')
     } 
-     // Validate password
+    // Validate password
     let isValidPassword
     try{
         isValidPassword = await bcrypt.compare(currentPass, existingUser.password);
@@ -296,7 +296,7 @@ const resetPassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     // Send password reset letter
     try{
-        await sendVerificationMail(email,tempPassword,false);
+        // await sendVerificationMail(email,tempPassword,false);
     } catch(error) {
         return res.status(500).send('Failed to send verification letter. Please try again later.')
     }   
@@ -312,7 +312,7 @@ const deleteUser:RequestHandler<{userId:string}> = async (req,res,next) => {
     } catch(error) {
         return res.status(500).send('Account deletion failed. Please try again later.')
     }
-     // Validate password
+    // Validate password
     let isValidPassword
     try{
         isValidPassword = await bcrypt.compare(password, existingUser.password);

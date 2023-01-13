@@ -4,6 +4,7 @@ process.env.TZ = 'Etc/Universal';
 const mongoose = require("mongoose")
 const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
 const app = express();
+const cors = require("cors");
 
 const userRoutes = require('./routes/user-routes');
 const scheduleRoutes = require('./routes/schedule-routes');
@@ -12,17 +13,20 @@ const habitRoutes = require('./routes/habit-routes');
 const journalRoutes = require('./routes/journal-routes');
 const goalRoutes = require('./routes/goal-routes');
 
+// CORS
+app.use(cors());
+
 // Encoders
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
 
-// Headers config
-app.use((req:Request,res:Response,next:NextFunction)=>{
-    res.setHeader('Access-Control-Allow-Origin','*');
-    res.setHeader('Access-Control-Allow-Headers','Origin,X-Requested-With,Content-Type,Accept,Authorization');
-    res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE');
-    next()
-})
+// // Headers config
+// app.use((req:Request,res:Response,next:NextFunction)=>{
+//     res.setHeader('Access-Control-Allow-Origin','*');
+//     res.setHeader('Access-Control-Allow-Headers','Origin,X-Requested-With,Content-Type,Accept,Authorization');
+//     res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE');
+//     next()
+// })
 
 //Routes 
 app.use('/users',userRoutes);
