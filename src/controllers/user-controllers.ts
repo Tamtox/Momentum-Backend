@@ -9,28 +9,23 @@ const {Schedule} = require('../models/schedule');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 import { RequestHandler } from "express";
-const { SECRET_STRING,EMAIL,CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN,SMTP_PORT,SMTP_HOST} = process.env;
+const { SECRET_STRING,EMAIL,PASS,CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN,SMTP_PORT,SMTP_HOST} = process.env;
 const nodemailer = require("nodemailer");
-const { google } = require("googleapis");
 
 const sendVerificationMail = async (email:string,verificationCode:string,verificationMode:boolean) => {
     const transporter = nodemailer.createTransport({
-        host:SMTP_HOST,
-        port:SMTP_PORT,
-        secure: true,
+        host: SMTP_HOST,
+        port: 587,
+        // secure: true,
         auth: {
-            type: "OAuth2",
             user: EMAIL,
-            // accessToken,
-            clientId: CLIENT_ID,
-            clientSecret: CLIENT_SECRET,
-            refreshToken: REFRESH_TOKEN
+            pass: PASS,
         }
     });
     const mailOptions = {
         from:EMAIL,
         to: email,  
-        subject: `${verificationMode ? 'Verification letter for Momentum' : 'Password reset letter for Momentum'}`,
+        subject: `${verificationMode ? 'Verification letter for Momentum application' : 'Password reset letter for Momentum application'}`,
         text: `${verificationMode ? 'Verification code' : 'Temporary password'} : ${verificationCode}`
     };
     return await transporter.sendMail(mailOptions, function(error:any, info:any){
@@ -74,28 +69,28 @@ const signup:RequestHandler = async (req,res,next) => {
     }
     // Create blank entries in database
     const newUserTodo = new Todo({
-        userId:newUser.id,
+        userId:newUser._id,
         user:email,
         todoList:[],
     })
     const newUserHabit = new Habit({
-        userId:newUser.id,
+        userId:newUser._id,
         user:email,
         habitEntries:[],
         habitList:[]
     });
     const newUserGoal = new Goal({
-        userId:newUser.id,
+        userId:newUser._id,
         user:email,
         goalList:[]
     });
     const newUserJournal = new Journal({
-        userId:newUser.id,
+        userId:newUser._id,
         user:email,
         journalEntries:[]
     });
     const newUserSchedule = new Schedule({
-        userId:newUser.id,
+        userId:newUser._id,
         user:email,
         scheduleList:[],
         scheduleEntries:[]
@@ -112,25 +107,27 @@ const signup:RequestHandler = async (req,res,next) => {
     // JWT
     let token
     try{
-        token = await jwt.sign({userId:newUser.id,email:newUser.email},SECRET_STRING,{expiresIn:'7d',})
+        token = await jwt.sign({userId:newUser._id,email:newUser.email},SECRET_STRING,{expiresIn:'7d',})
     } catch(error) {
-        return res.status(500).send('Failed to create new user. Please try again later.')
+        return res.status(500).send('Failed to create new user. Please try again later.');
     }
     // Send confirmation letter
     try{
-        // await sendVerificationMail(email,verificationCode,true)
+        await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
-        console.log(error);
+        return res.status(500).send('Failed to create new user. Please try again later.');
     }   
     res.status(201).json({name,email,token,emailConfirmationStatus:"Pending"})
 }
 
 const login:RequestHandler = async (req,res,next) => {
-    const {email,password,timezoneOffset} = req.body as {email:string,password:string,timezoneOffset:string}
+    const {email,password,timezoneOffset} = req.body as {email:string,password:string,timezoneOffset:string};
     // Check existing user
     let existingUser
+    let users
     try{
         existingUser = await User.findOne({email:email});
+        users = await User.find({});
     } catch(error) {
         return res.status(500).send('Failed to login. Please try again later.')
     }
@@ -155,7 +152,7 @@ const login:RequestHandler = async (req,res,next) => {
     // JWT
     let token
     try{
-        token = jwt.sign({userId:existingUser.id,email:existingUser.email},SECRET_STRING,{expiresIn:'7d',})
+        token = jwt.sign({userId:existingUser._id,email:existingUser.email},SECRET_STRING,{expiresIn:'7d',})
     } catch(error) {
         return res.status(500).send('Failed to login. Please try again later.');
     }
@@ -184,10 +181,10 @@ const verifyUser:RequestHandler<{userId:string}> = async (req,res,next) => {
 }
 
 const getUserData:RequestHandler<{userId:string}> = async (req,res,next) => {
-    const userId = req.params.userId
+    const userId = req.params.userId;
     let existingUser
     try{
-        existingUser = await User.findOne({userId:userId});
+        existingUser = await User.findOne({_id:userId});
     } catch(error) {
         return res.status(500).send('Failed to retrieve data. Please try again later.')
     }
@@ -210,7 +207,7 @@ const sendVerificationLetter:RequestHandler<{userId:string}> = async (req,res,ne
     const verificationCode = existingUser.verificationCode
      // Send confirmation letter
     try{
-        // await sendVerificationMail(email,verificationCode,true)
+        await sendVerificationMail(email,verificationCode,true)
     } catch(error) {
         return res.status(500).send('Failed to send verification letter. Please try again later.')
     }   
@@ -256,7 +253,7 @@ const changePassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Return new token
     let token
     try {
-        token = jwt.sign({userId:existingUser.id,email:existingUser.email},SECRET_STRING,{expiresIn:'7d',})
+        token = jwt.sign({userId:existingUser._id,email:existingUser.email},SECRET_STRING,{expiresIn:'7d',})
     } catch(error) {
         return res.status(500).send('Failed to login. Please try again later.')
     }
@@ -296,7 +293,7 @@ const resetPassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     // Send password reset letter
     try{
-        // await sendVerificationMail(email,tempPassword,false);
+        await sendVerificationMail(email,tempPassword,false);
     } catch(error) {
         return res.status(500).send('Failed to send verification letter. Please try again later.')
     }   
