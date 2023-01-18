@@ -164,13 +164,13 @@ const verifyUser:RequestHandler<{userId:string}> = async (req,res,next) => {
     const {verificationCode} = req.body as {verificationCode:string}
     let existingUser
     try{
-        existingUser = await User.findOne({userId:userId});
+        existingUser = await User.findOne({_id:userId});
     } catch(error) {
         return res.status(500).send('Verification failed. Please try again later.')
     }
     if(existingUser.verificationCode === verificationCode) {
         try{
-            await User.findOneAndUpdate({userId:userId},{$set:{emailConfirmationStatus:"Complete"}})
+            await User.findOneAndUpdate({_id:userId},{$set:{emailConfirmationStatus:"Complete"}})
         } catch(error) {
             return res.status(500).send('Verification failed!')
         }
@@ -200,7 +200,7 @@ const sendVerificationLetter:RequestHandler<{userId:string}> = async (req,res,ne
     const {email} = req.body as {email:string}
     let existingUser
     try{
-        existingUser = await User.findOne({userId:userId});
+        existingUser = await User.findOne({_id:userId});
     } catch(error) {
         return res.status(500).send('Failed to retrieve data. Please try again later.')
     }
@@ -220,7 +220,7 @@ const changePassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     // Check if user exists
     let existingUser
     try{
-        existingUser = await User.findOne({userId:userId});
+        existingUser = await User.findOne({_id:userId});
     } catch(error) {
         return res.status(500).send('Failed to change password. Please try again later.')
     }
@@ -246,7 +246,7 @@ const changePassword:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     // Update password in database
     try{
-        await User.findOneAndUpdate({userId:userId},{$set:{password:hashedPassword}})
+        await User.findOneAndUpdate({_id:userId},{$set:{password:hashedPassword}})
     } catch(error) {
         return res.status(500).send('Failed to change password. Please try again later.')
     }
@@ -305,7 +305,7 @@ const deleteUser:RequestHandler<{userId:string}> = async (req,res,next) => {
     const {password} = req.body as {password:string};
     let existingUser
     try{
-        existingUser = await User.findOne({userId:userId});
+        existingUser = await User.findOne({_id:userId});
     } catch(error) {
         return res.status(500).send('Account deletion failed. Please try again later.')
     }
@@ -321,7 +321,7 @@ const deleteUser:RequestHandler<{userId:string}> = async (req,res,next) => {
     }
     if(existingUser) {
         try{
-            await User.findOneAndDelete({userId:userId});
+            await User.findOneAndDelete({_id:userId});
             await Todo.findOneAndDelete({userId:userId});
             await Journal.findOneAndDelete({userId:userId});
             await Habit.findOneAndDelete({userId:userId});
@@ -339,7 +339,7 @@ const deleteUser:RequestHandler<{userId:string}> = async (req,res,next) => {
 const lastOnline:RequestHandler<{userId:string}> = async (req,res,next) => {
     const userId = req.params.userId
     try{
-        await User.findOneAndUpdate({userId:userId},{$set:{lastOnline:new Date()}});
+        await User.findOneAndUpdate({_id:userId},{$set:{lastOnline:new Date()}});
     } catch(error) {
         return res.status(500).send('Failed to login. Please try again later.');
     }
