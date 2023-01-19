@@ -4,7 +4,7 @@ process.env.TZ = 'Etc/Universal';
 const mongoose = require("mongoose")
 const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
 const app = express();
-const cors = require("cors");
+const path = require('path');
 
 const userRoutes = require('./routes/user-routes');
 const scheduleRoutes = require('./routes/schedule-routes');
@@ -13,12 +13,12 @@ const habitRoutes = require('./routes/habit-routes');
 const journalRoutes = require('./routes/journal-routes');
 const goalRoutes = require('./routes/goal-routes');
 
-// CORS
-app.use(cors());
 
 // Encoders
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, '../build')));
 
 // // Headers config
 // app.use((req:Request,res:Response,next:NextFunction)=>{
@@ -28,7 +28,9 @@ app.use(express.json());
 //     next()
 // })
 
-//Routes 
+
+
+// API Routes 
 app.use('/users',userRoutes);
 app.use('/schedule',scheduleRoutes);
 app.use('/todo',todoRoutes);
@@ -36,10 +38,14 @@ app.use('/habits',habitRoutes);
 app.use('/journal',journalRoutes);
 app.use('/goals',goalRoutes);
 
-// Unknown routes
-app.use((req:Request,res:Response,next:NextFunction)=>{
-    return res.status(404).send("Route doesn't exist");
-})
+// // Unknown routes
+// app.use((req:Request,res:Response,next:NextFunction)=>{
+//     return res.status(404).send("Route doesn't exist");
+// })
+
+app.use((req:Request,res:Response)=> {
+    res.sendFile(path.join(__dirname, "../build", "index.html"));
+});
 
 app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     if(res.headersSent) {
