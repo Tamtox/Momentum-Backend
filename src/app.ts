@@ -13,11 +13,9 @@ const habitRoutes = require('./routes/habit-routes');
 const journalRoutes = require('./routes/journal-routes');
 const goalRoutes = require('./routes/goal-routes');
 
-
 // Encoders
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
-
 app.use(express.static(path.join(__dirname, '../build')));
 
 // // Headers config
@@ -27,8 +25,6 @@ app.use(express.static(path.join(__dirname, '../build')));
 //     res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE');
 //     next()
 // })
-
-
 
 // API Routes 
 app.use('/users',userRoutes);
