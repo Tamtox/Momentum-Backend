@@ -1,5 +1,5 @@
 import express,{ Request,Response,NextFunction } from "express";
-import 'dotenv/config'
+import 'dotenv/config';
 process.env.TZ = 'Etc/Universal';
 const mongoose = require("mongoose")
 const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
@@ -34,11 +34,6 @@ app.use('/habits',habitRoutes);
 app.use('/journal',journalRoutes);
 app.use('/goals',goalRoutes);
 
-// // Unknown routes
-// app.use((req:Request,res:Response,next:NextFunction)=>{
-//     return res.status(404).send("Route doesn't exist");
-// })
-
 app.use((req:Request,res:Response)=> {
     res.sendFile(path.join(__dirname, "../build", "index.html"));
 });
@@ -51,7 +46,7 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
 })
 
 // Mongodb connection
-mongoose.connect(`${MONGO_URI}`, { useNewUrlParser: true, useUnifiedTopology: true } ).then(() => {
+mongoose.connect(`${MONGO_URI}`, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
     console.log("Successfully connected to database");
     app.listen(PORT);
     console.log("Server Up")

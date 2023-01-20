@@ -6,9 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "prestart": "npm run build",
-    "start": "dist/app.js",
-    "dev": "tsc -w && dist/app.js"
+    "start": "node dist/app.js",
+    "dev": "nodemon dist/app.js"
   },
   "author": "Tamtox",
   "license": "ISC",
