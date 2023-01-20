@@ -4,6 +4,7 @@
 /.vscode
 
 # production
+/dist
 
 # misc
 .DS_Store
