@@ -2,7 +2,7 @@ import express,{ Request,Response,NextFunction } from "express";
 import 'dotenv/config';
 process.env.TZ = 'Etc/Universal';
 const mongoose = require("mongoose")
-const { MONGO_URI,PORT,MONGO_URIATLAS } = process.env;
+const { MONGO_URL,PORT,MONGO_URLATLAS } = process.env;
 const app = express();
 const path = require('path');
 
@@ -16,7 +16,7 @@ const goalRoutes = require('./routes/goal-routes');
 // Encoders
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../build')));
+// app.use(express.static(path.join(__dirname, '../build')));
 
 // Headers config
 app.use((req:Request,res:Response,next:NextFunction)=>{
@@ -34,9 +34,9 @@ app.use('/habits',habitRoutes);
 app.use('/journal',journalRoutes);
 app.use('/goals',goalRoutes);
 
-app.use((req:Request,res:Response)=> {
-    res.sendFile(path.join(__dirname, "../build", "index.html"));
-});
+// app.use((req:Request,res:Response)=> {
+//     res.sendFile(path.join(__dirname, "../build", "index.html"));
+// });
 
 app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     if(res.headersSent) {
@@ -46,7 +46,7 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
 })
 
 // Mongodb connection
-mongoose.connect(`${MONGO_URI}`, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
+mongoose.connect(`${MONGO_URL}`, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
     console.log("Successfully connected to database");
     app.listen(PORT);
     console.log("Server Up")
