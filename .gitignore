@@ -13,3 +13,4 @@
 .env.test.local
 .env.production.local
 .env
+.docker-compose.yml
