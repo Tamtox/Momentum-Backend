@@ -16,14 +16,14 @@ const goalRoutes = require('./routes/goal-routes');
 // Encoders
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
-// app.use(express.static(path.join(__dirname, '../build')));
+// app.use(express.static(path.join(__dirname, 'public')));
 
 // Headers config
 app.use((req:Request,res:Response,next:NextFunction)=>{
     res.setHeader('Access-Control-Allow-Origin','*');
     res.setHeader('Access-Control-Allow-Headers','Origin,X-Requested-With,Content-Type,Accept,Authorization');
     res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE');
-    next()
+    next();
 })
 
 // API Routes 
@@ -34,9 +34,15 @@ app.use('/habits',habitRoutes);
 app.use('/journal',journalRoutes);
 app.use('/goals',goalRoutes);
 
+// Static
 // app.use((req:Request,res:Response)=> {
-//     res.sendFile(path.join(__dirname, "../build", "index.html"));
+//     res.sendFile(path.join(__dirname, "public", "index.html"));
 // });
+
+// Unknown routes
+app.use((req:Request,res:Response,next:NextFunction)=>{
+    return res.status(404).send("Route doesn't exist");
+})
 
 app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     if(res.headersSent) {
@@ -45,12 +51,16 @@ app.use((error:Error,req:Request,res:Response,next:NextFunction)=>{
     res.json({message:error.message||'Unknown error'});
 })
 
-// Mongodb connection
-mongoose.connect(`${MONGO_URL}`, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
-    console.log("Successfully connected to database");
-    app.listen(PORT);
-    console.log("Server Up")
-}).catch((error:Error) => {
-    console.log("Database connection failed. exiting now...");
-    console.error(error);
-});
+async function momentumStart() {
+    try{
+        // await mongoose.connect(`${MONGO_URL}`, { useNewUrlParser: true, useUnifiedTopology: true });
+        app.listen(PORT);
+        console.log(`Server up at port ${PORT}`);
+    } catch(error) {
+        console.log(PORT)
+        console.log("Database connection failed. exiting now...");
+        console.error(error);
+    }
+}
+
+momentumStart();
